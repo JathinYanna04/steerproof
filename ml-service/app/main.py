@@ -9,10 +9,12 @@ from app.schemas import (
     ExtractRequest, ExtractResponse,
     VerifyRequest, VerifyResponse, ClaimVerifyDetail,
     WriteRequest, WriteResponse,
+    IllustrationCheckRequest, IllustrationCheckResponse,
     ReelAudioRequest, ReelAudioResponse,
     ReelBrollRequest, ReelBrollResponse
 )
 from app.write.writer import run_writer
+from app.verify.illustration_check import check_illustrations
 from app.parse.docling_parser import parse_pdf
 from app.parse.page_images import render_page_images
 from app.parse.meta import extract_meta
@@ -175,6 +177,15 @@ async def write_content(req: WriteRequest):
         return response
     except Exception as e:
         logger.error(f"Error in /write: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/check/illustrations", response_model=IllustrationCheckResponse)
+async def check_illustrations_endpoint(req: IllustrationCheckRequest):
+    try:
+        verdicts, calls, hits = check_illustrations(req, llm_client)
+        return IllustrationCheckResponse(verdicts=verdicts, llmCalls=calls, cacheHits=hits)
+    except Exception as e:
+        logger.error(f"Error in /check/illustrations: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/reel/audio", response_model=ReelAudioResponse)

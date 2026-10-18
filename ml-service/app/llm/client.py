@@ -24,10 +24,15 @@ class LLMClient:
         prompt: str,
         schema: Type[T],
         temperature: float = 0.0,
-        model: Optional[str] = None
+        model: Optional[str] = None,
+        cache_key_extra: str = ""
     ) -> Tuple[T, bool]:
         selected_model = model or self.settings.gemini_model
-        prompt_hash = hashlib.sha256(f"{selected_model}|{temperature}|{schema.__name__}|{prompt}".encode("utf-8")).hexdigest()
+        # cache_key_extra lets callers scope the cache (e.g. paperId + claim payload + prompt version)
+        key_material = f"{selected_model}|{temperature}|{schema.__name__}|{prompt}"
+        if cache_key_extra:
+            key_material += f"|{cache_key_extra}"
+        prompt_hash = hashlib.sha256(key_material.encode("utf-8")).hexdigest()
         
         hit = self.cache.get(prompt_hash)
         if hit is not None:

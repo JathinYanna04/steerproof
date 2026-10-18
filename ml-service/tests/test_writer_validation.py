@@ -6,9 +6,9 @@ def make_valid_writer_result():
     carousel = [
         Slide(n=1, type="hook", headline="*Why* is weight regain so common?", body="Let's look at what clinical trials show.", kind="brand", claimIds=[], background="cream"),
         Slide(n=2, type="point", headline="Appetite signals *surge* after weight loss", body="For each kilo lost, daily appetite increases.", kind="claim", claimIds=["C-0001-002"], background="cream"),
-        Slide(n=3, type="illustration", headline="Think of your body after a *family dinner*", body="Your hormones naturally try to restore previous energy levels.", kind="illustration", claimIds=[], background="cream"),
+        Slide(n=3, type="illustration", headline="That *second* roti at family dinner", body="Someone always passes the plate around one more time.", kind="illustration", claimIds=[], background="cream"),
         Slide(n=4, type="point", headline="Long-term *support* changes the outcome", body="Ongoing medical guidance improves weight-loss maintenance.", kind="claim", claimIds=["C-0001-003"], background="cream"),
-        Slide(n=5, type="source", headline="Evidence from *Hall & Kahan, 2018*", body="Published in Med Clin North Am.", kind="brand", claimIds=[], background="cream"),
+        Slide(n=5, type="source", headline="Where this *comes* from", body="A review of long-term weight-maintenance studies.", kind="brand", claimIds=[], background="cream"),
         Slide(n=6, type="closing", headline="Doctor-led care for *lasting* metabolic health", body="steer · steerclub.com", kind="brand", claimIds=[], background="maroon"),
     ]
 
@@ -17,20 +17,19 @@ def make_valid_writer_result():
         support="Appetite hormones surge as calorie burn drops.",
         kind="claim",
         claimIds=["C-0001-002"],
-        footnote="Source: Hall & Kahan, 2018 · Med Clin North Am"
     )
 
     reel = [
         Scene(n=1, onScreen="Why is weight regain so common?", voiceover="Have you ever wondered why weight regain happens?", kind="brand", claimIds=[], brollQuery="chai cup table", motion="title"),
-        Scene(n=2, onScreen="Appetite hormones surge", voiceover="In clinical trials, appetite increased as weight dropped.", kind="claim", claimIds=["C-0001-002"], brollQuery="clock wall office", motion="stat"),
-        Scene(n=3, onScreen="It is biology, not willpower", voiceover="Your body triggers survival adaptations to restore lost calories.", kind="illustration", claimIds=[], brollQuery="kitchen spices food", motion="list"),
-        Scene(n=4, onScreen="Long-term guidance helps", voiceover="Ongoing support from clinicians improved maintenance outcomes.", kind="claim", claimIds=["C-0001-003"], brollQuery="park walking path", motion="quote"),
+        Scene(n=2, onScreen="About 100 kcal more appetite", voiceover="In clinical trials, appetite rose by about 100 kcal per day per kilo lost.", kind="claim", claimIds=["C-0001-002"], brollQuery="wall clock", motion="stat"),
+        Scene(n=3, onScreen="The 4pm chai break", voiceover="Think of the chai and biscuits that arrive at every office meeting.", kind="illustration", claimIds=[], brollQuery="chai cup", motion="title"),
+        Scene(n=4, onScreen="Long-term guidance helps", voiceover="Ongoing support from clinicians improved maintenance outcomes.", kind="claim", claimIds=["C-0001-003"], brollQuery="morning park path", motion="title"),
         Scene(n=5, onScreen="steer · steerclub.com", voiceover="Doctor-led metabolic care. steerclub.com", kind="brand", claimIds=[], brollQuery="sunrise sky morning", motion="closing"),
     ]
 
     caption = CaptionContent(
         paragraphs=[
-            CaptionPara(text="Weight regain is biology, not a lack of discipline.", kind="illustration", claimIds=[]),
+            CaptionPara(text="Weight regain is not a lack of discipline. Doctor-led care plans for it.", kind="brand", claimIds=[]),
             CaptionPara(text="In long-term clinical trials, appetite increased by 100 calories per day for each kilogram lost.", kind="claim", claimIds=["C-0001-002"]),
             CaptionPara(text="Visit steerclub.com to learn more about doctor-led metabolic care.", kind="brand", claimIds=[])
         ],

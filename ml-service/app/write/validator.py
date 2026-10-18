@@ -1,11 +1,26 @@
 import re
-from typing import List, Tuple
-from app.schemas import WriterResult, Slide, StaticContent, Scene, CaptionContent
+from typing import List, Optional, Sequence, Tuple
+from app.schemas import WriterResult, ApprovedClaimInput
+from app.write.copy_rules import (
+    has_citation_text, illustration_fact_hint, qualifier_errors, has_qualifier, stat_value,
+)
 
 PERCENT_OR_STAT_REGEX = re.compile(r'\d+(?:\.\d+)?\s*(?:%|\bpercent\b)|\b\d+\s*(?:kg|kilos|pounds|lbs)\b', re.IGNORECASE)
 
-def validate_writer_result(result: WriterResult) -> Tuple[bool, List[str]]:
+def _approved_text(c: ApprovedClaimInput) -> str:
+    return c.approvedCopy or c.consumerDraft or c.scientificClaim
+
+
+def validate_writer_result(
+    result: WriterResult, claims: Optional[Sequence[ApprovedClaimInput]] = None
+) -> Tuple[bool, List[str]]:
     errors: List[str] = []
+    claims = claims or []
+    exploratory = {c.claimId for c in claims if (c.findingClass or "").upper() == "EXPLORATORY"}
+    approved_text = {c.claimId: _approved_text(c) for c in claims}
+
+    def linked_exploratory(ids: list[str]) -> bool:
+        return any(cid in exploratory for cid in ids)
 
     # 1. Carousel validation
     if not (5 <= len(result.carousel) <= 7):
@@ -45,8 +60,6 @@ def validate_writer_result(result: WriterResult) -> Tuple[bool, List[str]]:
         errors.append(f"Static: headline exceeds 48 chars ({len(stat.headline)} chars)")
     if len(stat.support) > 110:
         errors.append(f"Static: support text exceeds 110 chars ({len(stat.support)} chars)")
-    if len(stat.footnote) > 90:
-        errors.append(f"Static: footnote exceeds 90 chars ({len(stat.footnote)} chars)")
     if stat.kind == "claim" and not stat.claimIds:
         errors.append("Static: block kind is 'claim' but claimIds is empty.")
     if stat.kind == "illustration" and stat.claimIds:
@@ -88,4 +101,57 @@ def validate_writer_result(result: WriterResult) -> Tuple[bool, List[str]]:
     if not (8 <= len(result.caption.hashtags) <= 12):
         errors.append(f"Caption must have between 8 and 12 hashtags, found {len(result.caption.hashtags)}.")
 
+    errors.extend(_content_errors(result, linked_exploratory, approved_text))
     return len(errors) == 0, errors
+
+
+def _content_errors(result: WriterResult, linked_exploratory, approved_text: dict) -> List[str]:
+    errors: List[str] = []
+
+    # Citation text is built in code; the writer must never produce it.
+    texts = [(f"Slide {s.n}", s.headline + " " + s.body) for s in result.carousel]
+    texts.append(("Static", result.static.headline + " " + result.static.support))
+    texts += [(f"Scene {sc.n}", sc.onScreen + " " + sc.voiceover) for sc in result.reel]
+    texts += [(f"Caption para {i + 1}", p.text) for i, p in enumerate(result.caption.paragraphs)]
+    for where, text in texts:
+        if has_citation_text(text):
+            errors.append(f"{where}: contains citation text (author names, 'et al.', years or DOI). "
+                          f"Remove it; citations are added automatically.")
+
+    # Illustrations describe everyday moments only.
+    illos = [(f"Slide {s.n}", s.headline + " " + s.body) for s in result.carousel if s.kind == "illustration"]
+    if result.static.kind == "illustration":
+        illos.append(("Static", result.static.headline + " " + result.static.support))
+    illos += [(f"Scene {sc.n}", sc.onScreen + " " + sc.voiceover) for sc in result.reel if sc.kind == "illustration"]
+    illos += [(f"Caption para {i + 1}", p.text) for i, p in enumerate(result.caption.paragraphs) if p.kind == "illustration"]
+    for where, text in illos:
+        hint = illustration_fact_hint(text)
+        if hint:
+            errors.append(f"{where}: illustration uses '{hint}', which reads as a biological/medical/causal fact. "
+                          f"Describe only an everyday moment, feeling or routine.")
+
+    # Qualifiers on every block linked to an EXPLORATORY claim, in every format.
+    for s in result.carousel:
+        if linked_exploratory(s.claimIds):
+            errors += qualifier_errors(s.headline, s.body, f"Slide {s.n}", "headline", "body")
+    st = result.static
+    if linked_exploratory(st.claimIds):
+        errors += qualifier_errors(st.headline, st.support, "Static", "headline", "support")
+    for sc in result.reel:
+        if linked_exploratory(sc.claimIds):
+            errors += qualifier_errors(sc.onScreen, sc.voiceover, f"Scene {sc.n}", "onScreen", "voiceover")
+    for i, p in enumerate(result.caption.paragraphs):
+        if linked_exploratory(p.claimIds) and not has_qualifier(p.text):
+            errors.append(f"Caption para {i + 1}: linked to an EXPLORATORY claim and lacks a qualifier.")
+
+    # Reel motion rules.
+    for sc in result.reel:
+        if sc.motion == "quote":
+            if sc.kind != "claim":
+                errors.append(f"Scene {sc.n}: motion 'quote' is only allowed on kind 'claim'; use 'title'.")
+            elif not any(sc.onScreen.strip() == approved_text.get(cid, "").strip() for cid in sc.claimIds):
+                errors.append(f"Scene {sc.n}: motion 'quote' must show the claim's approvedText exactly; use 'title' instead.")
+        if sc.motion == "stat" and not stat_value(sc.onScreen + " " + sc.voiceover):
+            errors.append(f"Scene {sc.n}: motion 'stat' needs an outcome value (%, kg, kcal...); counts of "
+                          f"studies/people/years are not stats. Use 'title'.")
+    return errors

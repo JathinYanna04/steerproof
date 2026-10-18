@@ -100,6 +100,21 @@ public class MlServiceClient {
                 .body(WriteResponse.class);
     }
 
+    public IllustrationCheckResponse checkIllustrations(String paperId, List<IllustrationItemDto> items) {
+        return restClient.post()
+                .uri("/check/illustrations")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("paperId", paperId, "items", items))
+                .retrieve()
+                .body(IllustrationCheckResponse.class);
+    }
+
+    public record IllustrationItemDto(String id, String text) {}
+
+    public record IllustrationVerdictDto(String id, Boolean statesFact, String reason) {}
+
+    public record IllustrationCheckResponse(List<IllustrationVerdictDto> verdicts, int llmCalls, int cacheHits) {}
+
     public record ApprovedClaimDto(
             String claimId,
             String approvedCopy,

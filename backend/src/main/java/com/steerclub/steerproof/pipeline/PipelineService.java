@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.util.*;
 
 import com.steerclub.steerproof.asset.AssetClaimEntity;
+import com.steerclub.steerproof.policy.IllustrationFindings;
 import com.steerclub.steerproof.policy.PolicyChecker;
 import com.steerclub.steerproof.policy.PolicyViolationEntity;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -50,6 +51,10 @@ public class PipelineService {
     private final HumanEventRepository humanEventRepository;
     private final PolicyChecker policyChecker;
     private final RenderServiceClient renderServiceClient;
+
+    // Field-injected so the constructor stays stable; adds code-owned citation/stat/motion fields to writer output.
+    @org.springframework.beans.factory.annotation.Autowired
+    private AssetContentEnricher assetContentEnricher;
 
     public PipelineService(
             PaperRepository paperRepository,
@@ -417,38 +422,27 @@ public class PipelineService {
                         paperId, metaDto, approvedClaims, paper.getTheme(), "en", null
                 );
 
-                Map<String, Object> car = writeRes.carousel();
-                if (car != null) {
-                    car.put("coreMessage", writeRes.coreMessage());
-                    car.put("reasoning", writeRes.reasoning());
+                Map<AssetType, Map<String, Object>> contents = new LinkedHashMap<>();
+                contents.put(AssetType.CAROUSEL, writeRes.carousel());
+                contents.put(AssetType.STATIC, writeRes.staticBlock());
+                contents.put(AssetType.REEL, writeRes.reel());
+                contents.put(AssetType.CAPTION, writeRes.caption());
+                contents.values().removeIf(Objects::isNull);
+                for (Map.Entry<AssetType, Map<String, Object>> e : contents.entrySet()) {
+                    e.getValue().put("coreMessage", writeRes.coreMessage());
+                    e.getValue().put("reasoning", writeRes.reasoning());
+                    assetContentEnricher.enrich(e.getKey(), e.getValue(), paper, claimsById);
                 }
-                saveAndCheckAsset(paperId, AssetType.CAROUSEL, car, claimsById);
-
-                Map<String, Object> sta = writeRes.staticBlock();
-                if (sta != null) {
-                    sta.put("coreMessage", writeRes.coreMessage());
-                    sta.put("reasoning", writeRes.reasoning());
+                // One batched Gemini check over every illustration block (ILLUSTRATION_STATES_FACT)
+                IllustrationFindings illustrationFindings = assetContentEnricher.checkIllustrations(paperId, contents);
+                for (Map.Entry<AssetType, Map<String, Object>> e : contents.entrySet()) {
+                    saveAndCheckAsset(paperId, e.getKey(), e.getValue(), claimsById, illustrationFindings);
                 }
-                saveAndCheckAsset(paperId, AssetType.STATIC, sta, claimsById);
-
-                Map<String, Object> reel = writeRes.reel();
-                if (reel != null) {
-                    reel.put("coreMessage", writeRes.coreMessage());
-                    reel.put("reasoning", writeRes.reasoning());
-                }
-                saveAndCheckAsset(paperId, AssetType.REEL, reel, claimsById);
-
-                Map<String, Object> cap = writeRes.caption();
-                if (cap != null) {
-                    cap.put("coreMessage", writeRes.coreMessage());
-                    cap.put("reasoning", writeRes.reasoning());
-                }
-                saveAndCheckAsset(paperId, AssetType.CAPTION, cap, claimsById);
 
                 run.setEndedAt(Instant.now());
                 run.setOk(true);
-                run.setLlmCalls(writeRes.llmCalls());
-                run.setCacheHits(writeRes.cacheHits());
+                run.setLlmCalls(writeRes.llmCalls() + illustrationFindings.llmCalls());
+                run.setCacheHits(writeRes.cacheHits() + illustrationFindings.cacheHits());
                 pipelineRunRepository.save(withModel(run));
 
                 PaperStatus prevStatus = paper.getStatus();
@@ -465,7 +459,7 @@ public class PipelineService {
                 stageStart = Instant.now();
                 PipelineRunEntity run = new PipelineRunEntity(paperId, "RENDER", stageStart);
 
-                String citation = com.steerclub.steerproof.common.CitationHelper.formatShortCitation(paper.getAuthors(), paper.getYear(), paper.getJournal());
+                String citation = Objects.requireNonNullElse(AssetContentEnricher.paperCitation(paper), "");
 
                 // 1. Render Carousel
                 String carId = idGenerator.assetId(paperId, AssetType.CAROUSEL);
@@ -487,9 +481,15 @@ public class PipelineService {
                                 String kind = (String) s.getOrDefault("kind", "brand");
                                 Object claimIds = s.getOrDefault("claimIds", List.of());
                                 Map<String, Object> meta = Map.of("kind", kind, "claimIds", claimIds);
+                                Map<String, Object> brandMeta = Map.of("kind", "brand", "claimIds", List.of());
                                 blockMap.put("slide" + n + ".headline", meta);
                                 blockMap.put("slide" + n + ".body", meta);
-                                blockMap.put("slide" + n + ".stat", meta);
+                                if (Boolean.TRUE.equals(s.get("statEligible"))) {
+                                    blockMap.put("slide" + n + ".stat", meta);
+                                }
+                                // Labels, footers and slide furniture are never claim-clickable
+                                blockMap.put("slide" + n + ".label", brandMeta);
+                                blockMap.put("slide" + n + ".footer", brandMeta);
                             }
 
                             if (carContent.isObject()) {
@@ -528,11 +528,18 @@ public class PipelineService {
                         String kind = (String) staContentMap.getOrDefault("kind", "claim");
                         Object claimIds = staContentMap.getOrDefault("claimIds", List.of());
                         Map<String, Object> meta = Map.of("kind", kind, "claimIds", claimIds);
-                        Map<String, Object> blockMap = Map.of(
+                        Map<String, Object> brandMeta = Map.of("kind", "brand", "claimIds", List.of());
+                        Map<String, Object> blockMap = new HashMap<>(Map.of(
                                 "static.headline", meta,
                                 "static.support", meta,
-                                "static.footnote", meta
-                        );
+                                // label, footer and the code-built citation line are not claim-clickable
+                                "static.label", brandMeta,
+                                "static.footer", brandMeta,
+                                "static.footnote", brandMeta
+                        ));
+                        if (Boolean.TRUE.equals(staContentMap.get("statEligible"))) {
+                            blockMap.put("static.stat", meta);
+                        }
 
                         if (staContent.isObject()) {
                             ((ObjectNode) staContent).set("blocks", objectMapper.valueToTree(res.blocks()));
@@ -715,6 +722,17 @@ public class PipelineService {
             Map<String, Object> contentMap,
             Map<String, ClaimEntity> claimsById
     ) throws Exception {
+        return saveAndCheckAsset(paperId, type, contentMap, claimsById, null);
+    }
+
+    @Transactional
+    public AssetEntity saveAndCheckAsset(
+            String paperId,
+            AssetType type,
+            Map<String, Object> contentMap,
+            Map<String, ClaimEntity> claimsById,
+            IllustrationFindings illustrationFindings
+    ) throws Exception {
         if (contentMap == null) return null;
 
         String assetId = idGenerator.assetId(paperId, type);
@@ -777,7 +795,7 @@ public class PipelineService {
         }
 
         // 2. Run PolicyChecker
-        List<PolicyChecker.ViolationResult> violations = policyChecker.checkAsset(assetId, type.name(), contentNode, claimsById);
+        List<PolicyChecker.ViolationResult> violations = policyChecker.checkAsset(assetId, type.name(), contentNode, claimsById, illustrationFindings);
         boolean hasBlocking = false;
         List<PolicyViolationEntity> violationEntities = new ArrayList<>();
         for (PolicyChecker.ViolationResult v : violations) {
@@ -854,7 +872,14 @@ public class PipelineService {
         };
 
         try {
-            AssetEntity saved = saveAndCheckAsset(paperId, asset.getType(), contentMap, claimsById);
+            IllustrationFindings illustrationFindings = null;
+            if (contentMap != null) {
+                contentMap.put("coreMessage", writeRes.coreMessage());
+                contentMap.put("reasoning", writeRes.reasoning());
+                assetContentEnricher.enrich(asset.getType(), contentMap, paper, claimsById);
+                illustrationFindings = assetContentEnricher.checkIllustrations(paperId, Map.of(asset.getType(), contentMap));
+            }
+            AssetEntity saved = saveAndCheckAsset(paperId, asset.getType(), contentMap, claimsById, illustrationFindings);
             if (saved != null && saved.getStatus() != AssetStatus.BLOCKED) {
                 if (saved.getType() == AssetType.CAPTION) {
                     saved.setStatus(AssetStatus.RENDERED);
@@ -874,7 +899,7 @@ public class PipelineService {
         String paperId = asset.getPaperId();
         PaperEntity paper = paperRepository.findById(paperId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + paperId));
-        String citation = com.steerclub.steerproof.common.CitationHelper.formatShortCitation(paper.getAuthors(), paper.getYear(), paper.getJournal());
+        String citation = Objects.requireNonNullElse(AssetContentEnricher.paperCitation(paper), "");
 
         if (asset.getType() == AssetType.CAROUSEL) {
             JsonNode content = objectMapper.readTree(asset.getContent());
@@ -884,6 +909,8 @@ public class PipelineService {
             asset.setRenderPaths(objectMapper.writeValueAsString(res.paths()));
             if (content.isObject()) {
                 ((ObjectNode) content).set("blocks", objectMapper.valueToTree(res.blocks()));
+                Map<String, Object> contentMap = objectMapper.convertValue(content, new TypeReference<Map<String, Object>>() {});
+                ((ObjectNode) content).set("blockMap", objectMapper.valueToTree(AssetContentEnricher.blockMap(AssetType.CAROUSEL, contentMap)));
                 asset.setContent(objectMapper.writeValueAsString(content));
             }
         } else if (asset.getType() == AssetType.STATIC) {
@@ -893,6 +920,7 @@ public class PipelineService {
             asset.setRenderPaths(objectMapper.writeValueAsString(res.paths()));
             if (content.isObject()) {
                 ((ObjectNode) content).set("blocks", objectMapper.valueToTree(res.blocks()));
+                ((ObjectNode) content).set("blockMap", objectMapper.valueToTree(AssetContentEnricher.blockMap(AssetType.STATIC, staContentMap)));
                 asset.setContent(objectMapper.writeValueAsString(content));
             }
         } else if (asset.getType() == AssetType.REEL) {

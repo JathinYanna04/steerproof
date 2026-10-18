@@ -69,6 +69,35 @@ public class PolicyChecker {
             "suggests", "may", "in this study", "in the trial", "one study"
     );
 
+    /** Qualifiers that mark an EXPLORATORY finding as study-bound (MISSING_QUALIFIER). Keep in sync with ml-service copy_rules.py. */
+    static final List<String> EXPLORATORY_QUALIFIERS = List.of(
+            "in this trial", "in one trial", "in the trial",
+            "in one study", "in this study", "in the study",
+            "in this follow-up", "in one follow-up", "in the follow-up",
+            "in this extension",
+            "suggests", "suggest", "suggested", "may", "might", "on average"
+    );
+    private static final Pattern QUALIFIER_PATTERN = Pattern.compile(
+            "(?i)\\b(?:" + String.join("|", EXPLORATORY_QUALIFIERS.stream().map(Pattern::quote).toList()) + ")\\b");
+
+    /**
+     * Heuristic for the onScreen/headline exemption: a line is factual if it has a digit, a quantity word
+     * or a finding verb. Only non-factual headings ("What the *trial* observed") may rely on the
+     * qualifier in the longer line next to them (body / support / voiceover).
+     */
+    private static final Pattern FACTUAL_PATTERN = Pattern.compile(
+            "(?i)\\d|\\b(?:half|most|majority|nearly|almost|percent|quarter|third|twice|double|fewer|more than|less than|"
+                    + "regain(?:ed|s)?|maintain(?:ed|s)?|kept|keep|lost|lose|losing|gain(?:ed|s)?|increas(?:ed|es|e)|"
+                    + "decreas(?:ed|es|e)|reduc(?:ed|es|e)|rose|rises?|fell|falls?|dropped|drops?|improv(?:ed|es|e)|"
+                    + "lower(?:ed|s)?|rais(?:ed|es|e)|return(?:ed|s)?|worsen(?:ed|s)?|declin(?:ed|es|e)|show(?:ed|s)?|"
+                    + "found|led|cause[sd]?|triggers?|triggered|stay(?:ed|s)?|came back|comes back)\\b");
+
+    /** Citation-like text the writer must never produce; citations are built in code. */
+    private static final Pattern CITATION_TEXT_PATTERN = Pattern.compile(
+            "(?i)\\bet\\s+al\\b|\\(\\s*(?:19|20)\\d{2}\\s*\\)|,\\s*(?:19|20)\\d{2}\\b|\\bdoi\\b");
+
+    static final int QUOTE_MAX_CHARS = 140;
+
     private List<String> associationWords = List.of(
             "associated", "linked", "correlated"
     );
@@ -120,7 +149,22 @@ public class PolicyChecker {
             JsonNode content,
             Map<String, ClaimEntity> claimsById
     ) {
+        return checkAsset(assetId, assetType, content, claimsById, null);
+    }
+
+    /**
+     * @param illustrationFindings result of the batched Gemini illustration check; null skips
+     *                             ILLUSTRATION_STATES_FACT (e.g. re-checks of already-checked content)
+     */
+    public List<ViolationResult> checkAsset(
+            String assetId,
+            String assetType,
+            JsonNode content,
+            Map<String, ClaimEntity> claimsById,
+            IllustrationFindings illustrationFindings
+    ) {
         List<ViolationResult> violations = new ArrayList<>();
+        checkAccuracy(assetType == null ? "" : assetType.toUpperCase(), content, claimsById, illustrationFindings, violations);
 
         if ("CAROUSEL".equalsIgnoreCase(assetType)) {
             checkCarousel(content, claimsById, violations);
@@ -204,8 +248,9 @@ public class PolicyChecker {
         if (support.length() > 110) {
             violations.add(new ViolationResult("LENGTH", Severity.BLOCKING, "static:support", "Support exceeds 110 chars: " + support.length(), null));
         }
-        if (footnote.length() > 90) {
-            violations.add(new ViolationResult("LENGTH", Severity.BLOCKING, "static:footnote", "Footnote exceeds 90 chars: " + footnote.length(), null));
+        if (!footnote.isBlank()) {
+            violations.add(new ViolationResult("CITATION_TEXT_IN_COPY", Severity.BLOCKING, "static:footnote",
+                    "Legacy writer footnote present; citations must come from the paper metadata row", null));
         }
 
         checkText(headline, "static:headline", kind, claimIds, claimsById, violations, false);
@@ -236,8 +281,9 @@ public class PolicyChecker {
                 }
             }
 
-            if (onScreen.length() > 40) {
-                violations.add(new ViolationResult("LENGTH", Severity.BLOCKING, loc + ":onScreen", "OnScreen exceeds 40 chars: " + onScreen.length(), null));
+            int onScreenMax = "quote".equals(scene.path("motion").asText("")) ? QUOTE_MAX_CHARS : 40;
+            if (onScreen.length() > onScreenMax) {
+                violations.add(new ViolationResult("LENGTH", Severity.BLOCKING, loc + ":onScreen", "OnScreen exceeds " + onScreenMax + " chars: " + onScreen.length(), null));
             }
             int wordCount = voiceover.trim().isEmpty() ? 0 : voiceover.trim().split("\\s+").length;
             if (wordCount > 30) {
@@ -512,6 +558,156 @@ public class PolicyChecker {
                 violations.add(new ViolationResult("EMOJI_IN_ASSET", Severity.WARNING, location, "Emoji found in post asset text", getFirstClaimId(claimIds)));
             }
         }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Accuracy rules: CITATION_ON_NONCLAIM, CITATION_TEXT_IN_COPY, MISSING_QUALIFIER,
+    // QUOTE_NOT_CLAIM_COPY, ILLUSTRATION_STATES_FACT. All BLOCKING.
+    // ---------------------------------------------------------------------------------------------
+
+    /** A copy block: its location, kind, linked claims, a short primary line and a longer secondary line. */
+    private record Block(String loc, String kind, List<String> claimIds, String primary, String primaryName,
+                         String secondary, String secondaryName, JsonNode node, boolean isSource) {}
+
+    private List<Block> blocks(String type, JsonNode content) {
+        List<Block> out = new ArrayList<>();
+        if (content == null) return out;
+        switch (type) {
+            case "CAROUSEL" -> {
+                JsonNode slides = content.has("slides") ? content.get("slides") : content;
+                if (slides != null && slides.isArray()) {
+                    for (int i = 0; i < slides.size(); i++) {
+                        JsonNode s = slides.get(i);
+                        int n = s.has("n") ? s.get("n").asInt() : i + 1;
+                        out.add(new Block("slide:" + n, s.path("kind").asText("claim"), ids(s),
+                                s.path("headline").asText(""), "headline", s.path("body").asText(""), "body", s,
+                                "source".equalsIgnoreCase(s.path("type").asText(""))));
+                    }
+                }
+            }
+            case "STATIC" -> out.add(new Block("static", content.path("kind").asText("claim"), ids(content),
+                    content.path("headline").asText(""), "headline", content.path("support").asText(""), "support", content, false));
+            case "REEL" -> {
+                JsonNode scenes = content.has("scenes") ? content.get("scenes") : content;
+                if (scenes != null && scenes.isArray()) {
+                    for (int i = 0; i < scenes.size(); i++) {
+                        JsonNode s = scenes.get(i);
+                        int n = s.has("n") ? s.get("n").asInt() : i + 1;
+                        out.add(new Block("scene:" + n, s.path("kind").asText("claim"), ids(s),
+                                s.path("onScreen").asText(""), "onScreen", s.path("voiceover").asText(""), "voiceover", s, false));
+                    }
+                }
+            }
+            case "CAPTION" -> {
+                JsonNode paras = content.get("paragraphs");
+                if (paras != null && paras.isArray()) {
+                    for (int i = 0; i < paras.size(); i++) {
+                        JsonNode p = paras.get(i);
+                        out.add(new Block("caption:p" + (i + 1), p.path("kind").asText("claim"), ids(p),
+                                p.path("text").asText(""), "text", "", null, p, false));
+                    }
+                }
+            }
+            default -> { }
+        }
+        return out;
+    }
+
+    private static List<String> ids(JsonNode n) {
+        List<String> out = new ArrayList<>();
+        if (n.has("claimIds") && n.get("claimIds").isArray()) {
+            for (JsonNode c : n.get("claimIds")) out.add(c.asText());
+        }
+        return out;
+    }
+
+    static boolean hasQualifier(String text) {
+        return text != null && QUALIFIER_PATTERN.matcher(text).find();
+    }
+
+    static boolean isFactual(String text) {
+        return text != null && FACTUAL_PATTERN.matcher(text.replace("*", "")).find();
+    }
+
+    private void checkAccuracy(String type, JsonNode content, Map<String, ClaimEntity> claimsById,
+                               IllustrationFindings findings, List<ViolationResult> violations) {
+        boolean anyIllustration = false;
+        for (Block b : blocks(type, content)) {
+            boolean isClaim = "claim".equalsIgnoreCase(b.kind());
+            String first = getFirstClaimId(b.claimIds());
+
+            // CITATION_ON_NONCLAIM: citation lines and quote cards render only on claim blocks (and the source slide).
+            String citation = b.node().path("citation").asText("");
+            if (!isClaim && !b.isSource() && !citation.isBlank()) {
+                violations.add(new ViolationResult("CITATION_ON_NONCLAIM", Severity.BLOCKING, b.loc(),
+                        "Citation on a " + b.kind() + " block: " + citation, first));
+            }
+            if ("quote".equals(b.node().path("motion").asText("")) && !isClaim) {
+                violations.add(new ViolationResult("CITATION_ON_NONCLAIM", Severity.BLOCKING, b.loc(),
+                        "Quote card (with source line) on a " + b.kind() + " scene", first));
+            }
+
+            // QUOTE_NOT_CLAIM_COPY: a quote card must show the approved claim copy verbatim.
+            if ("quote".equals(b.node().path("motion").asText("")) && isClaim) {
+                boolean matches = b.claimIds().stream()
+                        .map(claimsById::get)
+                        .filter(Objects::nonNull)
+                        .map(PolicyChecker::approvedCopy)
+                        .anyMatch(c -> c != null && c.trim().equals(b.primary().trim()));
+                if (!matches) {
+                    violations.add(new ViolationResult("QUOTE_NOT_CLAIM_COPY", Severity.BLOCKING, b.loc(),
+                            "Quote card text is not the approved claim copy: " + b.primary(), first));
+                }
+            }
+
+            // CITATION_TEXT_IN_COPY: the writer must never produce author names, years or DOIs.
+            for (String text : List.of(b.primary(), b.secondary())) {
+                Matcher m = CITATION_TEXT_PATTERN.matcher(text);
+                if (m.find()) {
+                    violations.add(new ViolationResult("CITATION_TEXT_IN_COPY", Severity.BLOCKING, b.loc(),
+                            "Citation-like text in copy ('" + m.group() + "'); citations are added from the paper metadata", first));
+                    break;
+                }
+            }
+
+            // MISSING_QUALIFIER: every block linked to an EXPLORATORY claim, in every format.
+            String exploratoryId = b.claimIds().stream()
+                    .filter(cid -> claimsById.get(cid) != null && claimsById.get(cid).getFindingClass() == FindingClass.EXPLORATORY)
+                    .findFirst().orElse(null);
+            if (exploratoryId != null) {
+                boolean secondaryPresent = b.secondary() != null && !b.secondary().isBlank();
+                boolean secondaryOk = secondaryPresent && hasQualifier(b.secondary());
+                if (secondaryPresent && !secondaryOk) {
+                    violations.add(new ViolationResult("MISSING_QUALIFIER", Severity.BLOCKING, b.loc() + ":" + b.secondaryName(),
+                            "Exploratory claim without a qualifier: " + b.secondary(), exploratoryId));
+                }
+                if (!b.primary().isBlank() && !hasQualifier(b.primary())
+                        && (isFactual(b.primary()) || !secondaryOk)) {
+                    violations.add(new ViolationResult("MISSING_QUALIFIER", Severity.BLOCKING, b.loc() + ":" + b.primaryName(),
+                            "Exploratory claim without a qualifier: " + b.primary(), exploratoryId));
+                }
+            }
+
+            // ILLUSTRATION_STATES_FACT (verdicts from the batched Gemini check)
+            if ("illustration".equalsIgnoreCase(b.kind()) && findings != null) {
+                anyIllustration = true;
+                String reason = findings.factualTexts().get(type + "/" + b.loc());
+                if (reason != null) {
+                    violations.add(new ViolationResult("ILLUSTRATION_STATES_FACT", Severity.BLOCKING, b.loc(),
+                            "Illustration states or implies a medical/biological/causal fact: " + reason, null));
+                }
+            }
+        }
+        if (anyIllustration && findings.checkError() != null) {
+            violations.add(new ViolationResult("ILLUSTRATION_STATES_FACT", Severity.BLOCKING, type.toLowerCase(),
+                    "Illustration fact check could not run (" + findings.checkError() + "); regenerate to retry", null));
+        }
+    }
+
+    private static String approvedCopy(ClaimEntity c) {
+        if (c.getEditedCopy() != null && !c.getEditedCopy().isBlank()) return c.getEditedCopy();
+        if (c.getConsumerDraft() != null && !c.getConsumerDraft().isBlank()) return c.getConsumerDraft();
+        return c.getScientificClaim();
     }
 
     private String getFirstClaimId(List<String> claimIds) {

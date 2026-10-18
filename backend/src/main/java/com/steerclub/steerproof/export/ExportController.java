@@ -188,10 +188,10 @@ public class ExportController {
                 List<ClaimEntity> claims = claimRepository.findByPaperIdOrderByIdAsc(paperId);
                 StringBuilder sourcesSb = new StringBuilder();
                 sourcesSb.append("# Scientific Sources & Evidence\n\n");
-                sourcesSb.append("**Study**: ").append(paper.getTitle() != null ? paper.getTitle() : "Clinical Study").append("\n");
-                sourcesSb.append("**Authors**: ").append(paper.getAuthors() != null ? paper.getAuthors() : "Authors").append("\n");
-                sourcesSb.append("**Journal**: ").append(paper.getJournal() != null ? paper.getJournal() : "Journal").append(" (")
-                        .append(paper.getYear() != null ? paper.getYear() : "Year").append(")\n\n");
+                // Built from this paper's own metadata row; missing fields are reported as missing, never invented.
+                String fullCitation = com.steerclub.steerproof.common.CitationHelper.formatFullCitation(
+                        paper.getAuthors(), paper.getYear(), paper.getTitle(), paper.getJournal(), paper.getDoi());
+                sourcesSb.append("**Citation**: ").append(fullCitation != null ? fullCitation : "(metadata missing)").append("\n\n");
                 sourcesSb.append("## Claim Verification Table\n\n");
                 sourcesSb.append("| Claim ID | On-Post Text | Exact Quote | Page | Section | Citation |\n");
                 sourcesSb.append("| :--- | :--- | :--- | :--- | :--- | :--- |\n");
@@ -203,7 +203,9 @@ public class ExportController {
                         String quote = c.getQuote() != null ? c.getQuote().replace("\n", " ").replace("|", "\\|") : "";
                         String page = pass != null && pass.getPage() != null ? String.valueOf(pass.getPage()) : "N/A";
                         String sec = pass != null && pass.getSection() != null ? pass.getSection().replace("|", "\\|") : "N/A";
-                        String cit = com.steerclub.steerproof.common.CitationHelper.formatShortCitation(paper.getAuthors(), paper.getYear(), paper.getJournal());
+                        String cit = java.util.Objects.requireNonNullElse(
+                                com.steerclub.steerproof.common.CitationHelper.formatShortCitation(paper.getAuthors(), paper.getYear(), paper.getJournal()),
+                                "(metadata missing)");
                         sourcesSb.append(String.format("| %s | %s | %s | %s | %s | %s |\n",
                                 c.getId(),
                                 onPost.replace("\n", " ").replace("|", "\\|"),

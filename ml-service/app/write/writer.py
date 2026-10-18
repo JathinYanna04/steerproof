@@ -11,6 +11,9 @@ from app.write.validator import validate_writer_result
 
 logger = logging.getLogger(__name__)
 
+# Bump whenever writer.md or the writer schema changes; it is part of the LLM cache key.
+WRITER_PROMPT_VERSION = "writer-v3-2026-10-18"
+
 def load_voice_spec() -> str:
     path = Path(__file__).resolve().parent.parent / "config" / "voice_spec.yaml"
     if path.exists():
@@ -33,27 +36,22 @@ def format_claims(claims) -> str:
         )
     return "\n".join(lines)
 
-def format_short_citation(meta) -> str:
-    authors = meta.authors or "Authors"
-    import re
-    first_entry = re.split(r'[,;]', authors)[0].strip()
-    first_entry = re.sub(r'(?i)\s+et\s+al\.?', '', first_entry).strip()
-    tokens = first_entry.split()
-    surname = tokens[-1] if tokens else "Authors"
-    year = meta.year or 2022
-    journal = meta.journal or "Clinical Study"
-    return f"{surname} et al., {year} · {journal}"
+def writer_cache_key_extra(req: WriteRequest) -> str:
+    """paperId + full claim payload + prompt version, so caches never cross papers or prompt revisions."""
+    payload = json.dumps([c.model_dump() for c in req.claims], sort_keys=True, ensure_ascii=False)
+    return f"{WRITER_PROMPT_VERSION}|{req.paperId}|{req.language}|{req.theme or ''}|{payload}"
+
 
 def run_writer(req: WriteRequest, llm: LLMClient) -> Tuple[WriteResponse, WriterResult]:
     voice_spec = load_voice_spec()
     claims_text = format_claims(req.claims)
-    citation = format_short_citation(req.meta)
+    # The writer never sees or writes citation text; citations are built in code from the paper row.
     prompt = load_prompt("writer", {
         "voice_spec": voice_spec,
         "claims": claims_text,
-        "citation": citation,
         "theme": req.theme or ""
     })
+    cache_key_extra = writer_cache_key_extra(req)
 
     total_calls = 0
     total_hits = 0
@@ -62,14 +60,15 @@ def run_writer(req: WriteRequest, llm: LLMClient) -> Tuple[WriteResponse, Writer
     res, hit = llm.structured(
         prompt=prompt,
         schema=WriterResult,
-        temperature=0.0
+        temperature=0.0,
+        cache_key_extra=cache_key_extra
     )
     if hit:
         total_hits += 1
     else:
         total_calls += 1
 
-    ok, errors = validate_writer_result(res)
+    ok, errors = validate_writer_result(res, req.claims)
     if not ok:
         logger.warning(f"Writer output failed initial validation with {len(errors)} errors: {errors}. Retrying once...")
         retry_prompt = prompt + "\n\nYOUR PREVIOUS OUTPUT FAILED THESE CHECKS. Fix only these, keep everything else:\n"
@@ -80,7 +79,8 @@ def run_writer(req: WriteRequest, llm: LLMClient) -> Tuple[WriteResponse, Writer
         retry_res, retry_hit = llm.structured(
             prompt=retry_prompt,
             schema=WriterResult,
-            temperature=0.0
+            temperature=0.0,
+            cache_key_extra=cache_key_extra
         )
         if retry_hit:
             total_hits += 1
@@ -88,7 +88,7 @@ def run_writer(req: WriteRequest, llm: LLMClient) -> Tuple[WriteResponse, Writer
             total_calls += 1
 
         res = retry_res
-        ok2, errors2 = validate_writer_result(res)
+        ok2, errors2 = validate_writer_result(res, req.claims)
         if not ok2:
             logger.warning(f"Writer retry still had errors: {errors2}")
 

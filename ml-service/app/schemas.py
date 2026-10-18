@@ -122,11 +122,11 @@ class Slide(BaseModel):
     background: Literal["cream", "maroon"] = "cream"
 
 class StaticContent(BaseModel):
+    # No footnote/citation field: citations are built in code from the paper's metadata row.
     headline: str
     support: str
     kind: Kind
     claimIds: list[str] = []
-    footnote: str
 
 class Scene(BaseModel):
     n: int
@@ -257,3 +257,25 @@ class ReelBrollResponse(BaseModel):
     results: list[ReelBrollResult]
     scenes: Optional[list[ReelBrollResult]] = None
 
+
+
+class IllustrationItem(BaseModel):
+    id: str
+    text: str
+
+class IllustrationCheckRequest(BaseModel):
+    paperId: str
+    items: list[IllustrationItem]
+
+class IllustrationVerdict(BaseModel):
+    id: str
+    statesFact: bool
+    reason: str
+
+class IllustrationVerdictList(BaseModel):
+    verdicts: list[IllustrationVerdict]
+
+class IllustrationCheckResponse(BaseModel):
+    verdicts: list[IllustrationVerdict]
+    llmCalls: int
+    cacheHits: int
