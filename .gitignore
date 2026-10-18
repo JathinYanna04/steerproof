@@ -1,0 +1,42 @@
+# Secrets and environment
+.env
+.env.local
+*.env
+
+# Local storage and cache
+storage/
+.cache/
+__pycache__/
+*.pyc
+
+# Python
+.venv/
+env/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Java / Spring Boot
+target/
+*.class
+*.jar
+*.war
+.mvn/wrapper/maven-wrapper.jar
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+build/
+dist/
+.remotion/
+
+# IDE and OS
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
