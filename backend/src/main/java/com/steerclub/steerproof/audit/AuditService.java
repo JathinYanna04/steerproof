@@ -91,9 +91,27 @@ public class AuditService {
 
     public List<AuditLogEntry> getAuditHistory(String entityId) {
         return repository.findByEntityIdOrderByAtAsc(entityId).stream()
-                .map(e -> new AuditLogEntry(e.getId(), e.getActor(), e.getAction(), e.getEntity(), e.getEntityId(), e.getBefore(), e.getAfter(), e.getAt()))
+                .map(e -> {
+                    Object beforeObj = null;
+                    Object afterObj = null;
+                    try {
+                        if (e.getBefore() != null) {
+                            beforeObj = objectMapper.readTree(e.getBefore());
+                        }
+                    } catch (Exception ignored) {
+                        beforeObj = e.getBefore();
+                    }
+                    try {
+                        if (e.getAfter() != null) {
+                            afterObj = objectMapper.readTree(e.getAfter());
+                        }
+                    } catch (Exception ignored) {
+                        afterObj = e.getAfter();
+                    }
+                    return new AuditLogEntry(e.getId(), e.getActor(), e.getAction(), e.getEntity(), e.getEntityId(), beforeObj, afterObj, e.getAt());
+                })
                 .toList();
     }
 
-    public record AuditLogEntry(Long id, String actor, String action, String entity, String entityId, String before, String after, Instant at) {}
+    public record AuditLogEntry(Long id, String actor, String action, String entity, String entityId, Object before, Object after, Instant at) {}
 }

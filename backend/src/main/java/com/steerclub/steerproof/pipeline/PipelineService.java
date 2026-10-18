@@ -10,8 +10,14 @@ import com.steerclub.steerproof.paper.PaperEntity;
 import com.steerclub.steerproof.paper.PaperRepository;
 import com.steerclub.steerproof.passage.PassageEntity;
 import com.steerclub.steerproof.passage.PassageRepository;
+import com.steerclub.steerproof.asset.AssetEntity;
+import com.steerclub.steerproof.asset.AssetRepository;
+import com.steerclub.steerproof.asset.AssetClaimRepository;
+import com.steerclub.steerproof.policy.PolicyViolationRepository;
+import com.steerclub.steerproof.metric.HumanEventRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +38,10 @@ public class PipelineService {
     private final IdGenerator idGenerator;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
+    private final AssetRepository assetRepository;
+    private final AssetClaimRepository assetClaimRepository;
+    private final PolicyViolationRepository policyViolationRepository;
+    private final HumanEventRepository humanEventRepository;
 
     public PipelineService(
             PaperRepository paperRepository,
@@ -41,7 +51,11 @@ public class PipelineService {
             MlServiceClient mlServiceClient,
             IdGenerator idGenerator,
             AuditService auditService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            AssetRepository assetRepository,
+            AssetClaimRepository assetClaimRepository,
+            PolicyViolationRepository policyViolationRepository,
+            HumanEventRepository humanEventRepository
     ) {
         this.paperRepository = paperRepository;
         this.passageRepository = passageRepository;
@@ -51,6 +65,10 @@ public class PipelineService {
         this.idGenerator = idGenerator;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
+        this.assetRepository = assetRepository;
+        this.assetClaimRepository = assetClaimRepository;
+        this.policyViolationRepository = policyViolationRepository;
+        this.humanEventRepository = humanEventRepository;
     }
 
     @Async
@@ -125,6 +143,16 @@ public class PipelineService {
             // Stage 2: EXTRACT
             List<MlServiceClient.ExtractedClaimDto> extractedClaims = new ArrayList<>();
             if (paper.getStatus() == PaperStatus.EXTRACTING) {
+                // Stable claim IDs rule: once any claim of a paper has been reviewed, extraction must never re-run for it.
+                List<ClaimEntity> existingClaims = claimRepository.findByPaperIdOrderByIdAsc(paperId);
+                boolean anyReviewed = existingClaims.stream().anyMatch(c -> c.getDoctorStatus() != DoctorStatus.PENDING || c.getReviewedAt() != null);
+                if (anyReviewed) {
+                    log.warn("Paper {} has reviewed claims; skipping re-extraction to preserve stable claim IDs.", paperId);
+                    paper.setStatus(PaperStatus.AWAITING_CLAIM_REVIEW);
+                    paperRepository.save(paper);
+                    return;
+                }
+
                 currentStage = "EXTRACT";
                 stageStart = Instant.now();
                 PipelineRunEntity run = new PipelineRunEntity(paperId, "EXTRACT", stageStart);
@@ -395,5 +423,40 @@ public class PipelineService {
         } catch (Exception e) {
             return List.of();
         }
+    }
+
+    @Transactional
+    public void resetPaper(String paperId) {
+        PaperEntity paper = paperRepository.findById(paperId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + paperId));
+
+        List<AssetEntity> assets = assetRepository.findByPaperIdOrderByIdAsc(paperId);
+        for (AssetEntity a : assets) {
+            policyViolationRepository.deleteByAssetId(a.getId());
+            assetClaimRepository.deleteByAssetId(a.getId());
+        }
+        assetRepository.deleteAll(assets);
+
+        claimRepository.deleteAll(claimRepository.findByPaperIdOrderByIdAsc(paperId));
+        humanEventRepository.deleteAll(humanEventRepository.findByPaperIdOrderByAtAsc(paperId));
+
+        List<PipelineRunEntity> runs = pipelineRunRepository.findByPaperIdOrderByStartedAtAsc(paperId);
+        for (PipelineRunEntity r : runs) {
+            if (!"PARSE".equalsIgnoreCase(r.getStage())) {
+                pipelineRunRepository.delete(r);
+            }
+        }
+
+        List<PassageEntity> passages = passageRepository.findByPaperIdOrderByOrdAsc(paperId);
+        if (!passages.isEmpty()) {
+            paper.setStatus(PaperStatus.EXTRACTING);
+        } else {
+            paper.setStatus(PaperStatus.PARSING);
+        }
+        paper.setFailedStage(null);
+        paper.setError(null);
+        paperRepository.save(paper);
+
+        auditService.log("system", "PAPER_RESET", "paper", paperId, Map.of(), Map.of("status", paper.getStatus().name()));
     }
 }

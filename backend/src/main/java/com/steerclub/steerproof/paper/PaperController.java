@@ -17,6 +17,8 @@ import com.steerclub.steerproof.storage.StorageService;
 import com.steerclub.steerproof.metric.HumanEventEntity;
 import com.steerclub.steerproof.metric.HumanEventRepository;
 import com.steerclub.steerproof.review.ReviewService;
+import com.steerclub.steerproof.common.Risk;
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.annotation.PostConstruct;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -44,6 +46,9 @@ public class PaperController {
     private final ObjectMapper objectMapper;
     private final ReviewService reviewService;
     private final HumanEventRepository humanEventRepository;
+
+    @Value("${app.demo-mode:true}")
+    private boolean demoMode;
 
     public PaperController(
             PaperRepository paperRepository,
@@ -268,6 +273,23 @@ public class PaperController {
         ));
     }
 
+    @PostMapping("/papers/{id}/reset")
+    public ResponseEntity<?> resetPaper(@PathVariable("id") String id) {
+        if (!demoMode) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "DEMO_MODE_REQUIRED", "Reset is only allowed when DEMO_MODE=true");
+        }
+        paperRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + id));
+
+        pipelineService.resetPaper(id);
+
+        PaperEntity updated = paperRepository.findById(id).orElseThrow();
+        return ResponseEntity.ok(Map.of(
+                "paperId", id,
+                "status", updated.getStatus().name()
+        ));
+    }
+
     @PostMapping("/papers/{id}/human-events")
     public ResponseEntity<Void> logHumanEvent(
             @PathVariable("id") String id,
@@ -276,7 +298,7 @@ public class PaperController {
         paperRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + id));
 
-        String actor = (String) body.getOrDefault("actor", "Doctor");
+        String actor = (String) body.getOrDefault("actor", "Reviewer");
         String kind = (String) body.getOrDefault("kind", "MANUAL");
         Number secondsNum = (Number) body.getOrDefault("seconds", 0);
         humanEventRepository.save(new HumanEventEntity(id, actor, kind, secondsNum.intValue()));
@@ -296,7 +318,11 @@ public class PaperController {
             if (c.getDoctorStatus() == DoctorStatus.APPROVED) approved++;
             else if (c.getDoctorStatus() == DoctorStatus.EDITED) edited++;
             else if (c.getDoctorStatus() == DoctorStatus.REJECTED) rejected++;
-            else if (c.getDoctorStatus() == DoctorStatus.NEEDS_EVIDENCE) flagged++;
+
+            // claimsAutoFlagged = claims with risk AMBER/RED or status NEEDS_EVIDENCE as set by the pipeline
+            if (c.getRisk() == Risk.AMBER || c.getRisk() == Risk.RED || c.getDoctorStatus() == DoctorStatus.NEEDS_EVIDENCE) {
+                flagged++;
+            }
 
             if (c.getReviewSeconds() != null) reviewSecs += c.getReviewSeconds();
         }
@@ -308,12 +334,23 @@ public class PaperController {
         }
         if (humanSeconds == 0) humanSeconds = reviewSecs;
 
+        // pipelineSeconds = latest successful run only (PARSE start -> VERIFY end)
         List<PipelineRunEntity> runs = pipelineRunRepository.findByPaperIdOrderByStartedAtAsc(paperId);
-        long pipelineSeconds = 0;
+        Instant latestParseStart = null;
+        Instant latestVerifyEnd = null;
         for (PipelineRunEntity r : runs) {
-            if (r.getStartedAt() != null && r.getEndedAt() != null) {
-                pipelineSeconds += Duration.between(r.getStartedAt(), r.getEndedAt()).toSeconds();
+            if (Boolean.TRUE.equals(r.getOk())) {
+                if ("PARSE".equalsIgnoreCase(r.getStage()) && r.getStartedAt() != null) {
+                    latestParseStart = r.getStartedAt();
+                } else if ("VERIFY".equalsIgnoreCase(r.getStage()) && r.getEndedAt() != null) {
+                    latestVerifyEnd = r.getEndedAt();
+                }
             }
+        }
+
+        long pipelineSeconds = 0;
+        if (latestParseStart != null && latestVerifyEnd != null && latestVerifyEnd.isAfter(latestParseStart)) {
+            pipelineSeconds = Duration.between(latestParseStart, latestVerifyEnd).toSeconds();
         }
 
         Map<String, Object> stats = new LinkedHashMap<>();

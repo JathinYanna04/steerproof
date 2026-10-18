@@ -127,7 +127,7 @@ public class ClaimService {
             claim.setReviewSeconds(current + req.reviewSeconds());
             humanEventRepository.save(new HumanEventEntity(
                     claim.getPaperId(),
-                    claim.getDoctorName() != null ? claim.getDoctorName() : "Doctor",
+                    claim.getDoctorName() != null ? claim.getDoctorName() : "Reviewer",
                     "CLAIM_REVIEW",
                     req.reviewSeconds()
             ));
@@ -159,7 +159,7 @@ public class ClaimService {
         afterState.put("quoteScore", claim.getQuoteScore());
 
         auditService.log(
-                claim.getDoctorName() != null ? claim.getDoctorName() : "Doctor",
+                claim.getDoctorName() != null ? claim.getDoctorName() : "Reviewer",
                 "CLAIM_" + action,
                 "claim",
                 claim.getId(),
