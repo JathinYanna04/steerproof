@@ -150,3 +150,11 @@ GET  /health
 ```
 
 `blocks` returns the pixel rectangles of every text block with its `blockId`. The frontend overlays clickable regions on previews, and `blockId` maps to `claimIds` through the asset content.
+
+## Demo endpoints (`DEMO_MODE=true` only, 403 otherwise)
+
+| Method | Path | Does |
+|---|---|---|
+| POST | `/api/demo/seed-bad-claim/{paperId}` | Inserts `C-xxxx-BAD` ("Weight always comes back fully when you stop treatment.") on a passage of the paper and runs it through the real verifier. Returns the claim with entailment, risk and reasons. Audited as `BAD_CLAIM_SEEDED` |
+| DELETE | `/api/demo/seed-bad-claim/{paperId}` | Removes the paper's seeded claims so a real review starts clean. 409 `CLAIM_IN_USE` while a generated asset still links one. Audited as `BAD_CLAIM_REMOVED` |
+

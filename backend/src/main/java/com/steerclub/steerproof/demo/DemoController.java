@@ -2,6 +2,7 @@ package com.steerclub.steerproof.demo;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.steerclub.steerproof.asset.AssetClaimRepository;
 import com.steerclub.steerproof.audit.AuditService;
 import com.steerclub.steerproof.claim.ClaimEntity;
 import com.steerclub.steerproof.claim.ClaimRepository;
@@ -31,6 +32,7 @@ public class DemoController {
     private final AuditService auditService;
     private final IdGenerator idGenerator;
     private final ObjectMapper objectMapper;
+    private final AssetClaimRepository assetClaimRepository;
 
     public DemoController(
             @Value("${app.demo-mode:false}") boolean demoMode,
@@ -40,7 +42,8 @@ public class DemoController {
             MlServiceClient mlServiceClient,
             AuditService auditService,
             IdGenerator idGenerator,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            AssetClaimRepository assetClaimRepository
     ) {
         this.demoMode = demoMode;
         this.paperRepository = paperRepository;
@@ -50,6 +53,29 @@ public class DemoController {
         this.auditService = auditService;
         this.idGenerator = idGenerator;
         this.objectMapper = objectMapper;
+        this.assetClaimRepository = assetClaimRepository;
+    }
+
+    /** Removes the seeded bad claim(s) of a paper after a demo recording, so the real review starts clean. */
+    @DeleteMapping("/seed-bad-claim/{paperId}")
+    @Transactional
+    public ResponseEntity<?> removeSeededClaims(@PathVariable("paperId") String paperId) {
+        if (!demoMode) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "DEMO_MODE_REQUIRED", "Removing seeded claims is only allowed in DEMO_MODE");
+        }
+        List<String> removed = new ArrayList<>();
+        for (ClaimEntity c : claimRepository.findByPaperIdOrderByIdAsc(paperId)) {
+            if (!Boolean.TRUE.equals(c.getIsSeededBad())) continue;
+            if (!assetClaimRepository.findByClaimId(c.getId()).isEmpty()) {
+                throw new ApiException(HttpStatus.CONFLICT, "CLAIM_IN_USE",
+                        c.getId() + " is used by a generated asset; reject it and regenerate the asset first");
+            }
+            claimRepository.delete(c);
+            auditService.log("demo", "BAD_CLAIM_REMOVED", "claim", c.getId(),
+                    Map.of("doctorStatus", c.getDoctorStatus().name()), Map.of());
+            removed.add(c.getId());
+        }
+        return ResponseEntity.ok(Map.of("paperId", paperId, "removed", removed));
     }
 
     @PostMapping("/seed-bad-claim/{paperId}")

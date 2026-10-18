@@ -136,6 +136,8 @@ When `DEMO_MODE=true` is set:
    ```bash
    # Injects an unscientific overclaim into P-0002 and runs it through real Gemini verifier:
    curl -X POST http://localhost:8080/api/demo/seed-bad-claim/P-0002
+   # Remove it again after the recording (refused with 409 while an asset still uses it):
+   curl -X DELETE http://localhost:8080/api/demo/seed-bad-claim/P-0002
    ```
 2. **Review State Reset**:
    ```bash
