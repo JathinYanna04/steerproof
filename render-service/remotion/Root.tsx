@@ -1,7 +1,7 @@
 import React from 'react';
 import { Composition } from 'remotion';
 import { Reel } from './Reel';
-import { ReelProps } from './types';
+import { ReelProps, sceneFrames, OUTRO_FRAMES } from './types';
 
 const defaultProps: ReelProps = {
   scenes: [
@@ -17,7 +17,7 @@ const defaultProps: ReelProps = {
       claimIds: [],
     }
   ],
-  citation: 'Hall & Kahan (2018)',
+  citation: '',
   draft: true,
   musicSrc: 'http://localhost:8002/assets/music/calm-1.mp3',
 };
@@ -36,9 +36,9 @@ export const Root: React.FC = () => {
         const fps = 30;
         let totalFrames = 0;
         for (const s of props.scenes) {
-          totalFrames += Math.ceil(((s.durationMs + 200) / 1000) * fps);
+          totalFrames += sceneFrames(s, fps);
         }
-        totalFrames += 30; // 30 frames of outro (1.0s)
+        totalFrames += OUTRO_FRAMES; // 1.0s outro, held by the last scene
         return {
           durationInFrames: Math.max(totalFrames, 90),
         };

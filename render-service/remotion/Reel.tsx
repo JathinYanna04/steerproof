@@ -9,13 +9,22 @@ import {
   useVideoConfig,
   delayRender,
   continueRender,
+  cancelRender,
+  staticFile,
   Easing
 } from 'remotion';
-import { ReelProps, SceneData, Word } from './types';
+import { ReelProps, SceneData, Word, sceneFrames, OUTRO_FRAMES } from './types';
 import { brand } from '../src/brand';
+import { isClaim, resolveCitation, stripSignOff, statFor, splitListItems } from '../src/textRules';
+import { chunkWords, attachPunctuation, stripTrailingSignOff } from './subtitles';
 
 // Single source of truth from brand.ts
 const BRAND = brand;
+
+// Monochrome fractal-noise tile for a faint paper texture (no colour literals).
+const PAPER_GRAIN = `url("data:image/svg+xml;utf8,${encodeURIComponent(
+  "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
+)}")`;
 
 // Helper to load fonts safely within Remotion
 const FontLoader: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,12 +32,12 @@ const FontLoader: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     const fonts = [
-      new FontFace('Instrument Serif', 'url(/assets/fonts/InstrumentSerif-Regular.woff2)', { weight: '400', style: 'normal' }),
-      new FontFace('Instrument Serif', 'url(/assets/fonts/InstrumentSerif-Italic.woff2)', { weight: '400', style: 'italic' }),
-      new FontFace('Inter', 'url(/assets/fonts/Inter-Regular.woff2)', { weight: '400', style: 'normal' }),
-      new FontFace('Inter', 'url(/assets/fonts/Inter-Medium.woff2)', { weight: '500', style: 'normal' }),
-      new FontFace('Inter', 'url(/assets/fonts/Inter-SemiBold.woff2)', { weight: '600', style: 'normal' }),
-      new FontFace('Caveat', 'url(/assets/fonts/Caveat-Medium.woff2)', { weight: '500', style: 'normal' }),
+      new FontFace('Instrument Serif', `url(${staticFile('fonts/InstrumentSerif-Regular.woff2')})`, { weight: '400', style: 'normal' }),
+      new FontFace('Instrument Serif', `url(${staticFile('fonts/InstrumentSerif-Italic.woff2')})`, { weight: '400', style: 'italic' }),
+      new FontFace('Inter', `url(${staticFile('fonts/Inter-Regular.woff2')})`, { weight: '400', style: 'normal' }),
+      new FontFace('Inter', `url(${staticFile('fonts/Inter-Medium.woff2')})`, { weight: '500', style: 'normal' }),
+      new FontFace('Inter', `url(${staticFile('fonts/Inter-SemiBold.woff2')})`, { weight: '600', style: 'normal' }),
+      new FontFace('Caveat', `url(${staticFile('fonts/Caveat-Medium.woff2')})`, { weight: '500', style: 'normal' }),
     ];
 
     Promise.all(fonts.map(f => f.load().then(loaded => document.fonts.add(loaded))))
@@ -36,40 +45,39 @@ const FontLoader: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         continueRender(handle);
       })
       .catch((err) => {
-        console.warn('Font load warning in Remotion:', err);
-        continueRender(handle);
+        // A fallback serif must never reach a rendered reel.
+        cancelRender(new Error(`FONT_NOT_LOADED: ${err}`));
       });
   }, [handle]);
 
   return <>{children}</>;
 };
 
-// Subtitles Component: Chunks words into 3-5 words, displays active chunk, highlights active word in rust
+// Display casing: keep the voiceover's own casing, but never shout.
+const displayWord = (text: string) =>
+  text.length >= 4 && text === text.toUpperCase() && /[A-Z]/.test(text) ? text.toLowerCase() : text;
+
+// Subtitles: phrase-aware chunks of at most 5 words (see subtitles.ts),
+// displays the active chunk and highlights the spoken word.
 const Subtitles: React.FC<{
   words: Word[];
+  voiceover?: string | null;
   sceneTimeMs: number;
   isMaroon: boolean;
-}> = ({ words, sceneTimeMs, isMaroon }) => {
+  isClosing: boolean;
+}> = ({ words, voiceover, sceneTimeMs, isMaroon, isClosing }) => {
   const chunks = useMemo(() => {
     if (!words || words.length === 0) return [];
-    const res: Word[][] = [];
-    let currentChunk: Word[] = [];
-
-    for (let i = 0; i < words.length; i++) {
-      const w = words[i];
-      currentChunk.push(w);
-      const endsWithPunct = /[.,!?;:]$/.test(w.text.trim());
-      if (currentChunk.length >= 4 || (currentChunk.length >= 3 && endsWithPunct) || i === words.length - 1) {
-        res.push(currentChunk);
-        currentChunk = [];
-      }
-    }
-    return res;
-  }, [words]);
+    let ws = attachPunctuation(words, voiceover);
+    if (isClosing) ws = stripTrailingSignOff(ws);
+    return chunkWords(ws);
+  }, [words, voiceover, isClosing]);
 
   if (chunks.length === 0) return null;
 
-  // Find active chunk
+  // Find active chunk; once the last chunk has been spoken, hide the pill.
+  const lastEnd = chunks[chunks.length - 1][chunks[chunks.length - 1].length - 1].endMs;
+  if (sceneTimeMs > lastEnd + 600) return null;
   let activeChunk = chunks[0];
   for (const c of chunks) {
     const start = c[0].startMs;
@@ -82,6 +90,10 @@ const Subtitles: React.FC<{
       activeChunk = c;
     }
   }
+
+  // Keep a chunk on one line: shrink long chunks instead of wrapping.
+  const chunkChars = activeChunk.reduce((n, w) => n + w.text.length + 1, 0);
+  const fontSize = Math.max(34, Math.min(46, Math.floor(820 / (chunkChars * 0.56))));
 
   const pillBg = isMaroon ? BRAND.maroon : BRAND.softPaper;
   const defaultTextColor = isMaroon ? BRAND.cream : BRAND.ink;
@@ -116,16 +128,16 @@ const Subtitles: React.FC<{
       >
         {activeChunk.map((w, idx) => {
           const isSpoken = sceneTimeMs >= w.startMs && sceneTimeMs <= w.endMs;
-          const cleanText = w.text.toLowerCase();
-          const displayText = idx === 0 ? cleanText.charAt(0).toUpperCase() + cleanText.slice(1) : cleanText;
+          const displayText = displayWord(w.text);
 
           return (
             <span
               key={idx}
               style={{
                 fontFamily: "'Inter', sans-serif",
-                fontSize: 46,
+                fontSize,
                 fontWeight: 600,
+                whiteSpace: 'nowrap',
                 color: isSpoken ? activeWordColor : defaultTextColor,
                 transition: 'color 0.1s ease',
               }}
@@ -152,12 +164,24 @@ const SceneView: React.FC<{
   const isClosing = scene.motion === 'closing';
   const isMaroon = isClosing;
   const hasBroll = Boolean(scene.brollSrc) && !isClosing;
+  const claimScene = isClaim(scene);
+  const onScreen = stripSignOff(scene.onScreen || '');
+  const sceneCitation = claimScene ? resolveCitation(scene, citation) : '';
 
-  // Background Drifting shapes when no b-roll
-  const drift1X = interpolate(frame, [0, durationInFrames], [50, 90]);
-  const drift1Y = interpolate(frame, [0, durationInFrames], [200, 240]);
-  const drift2X = interpolate(frame, [0, durationInFrames], [700, 650]);
-  const drift2Y = interpolate(frame, [0, durationInFrames], [1200, 1160]);
+  // Motion fallbacks: quote only for claims, stat only for statEligible
+  // outcome values, list only with two or more items. Otherwise title.
+  const stat = statFor(scene, onScreen);
+  const listItems = splitListItems(onScreen);
+  let motion = scene.motion || 'title';
+  if (motion === 'quote' && !claimScene) motion = 'title';
+  if (motion === 'stat' && !stat) motion = 'title';
+  if (motion === 'list' && listItems.length < 2) motion = 'title';
+
+  // Very slow, faint drift of two large soft shapes when there is no b-roll.
+  const drift1X = interpolate(frame, [0, durationInFrames], [-120, -100]);
+  const drift1Y = interpolate(frame, [0, durationInFrames], [80, 96]);
+  const drift2X = interpolate(frame, [0, durationInFrames], [380, 364]);
+  const drift2Y = interpolate(frame, [0, durationInFrames], [1080, 1064]);
 
   // Ken Burns zoom on b-roll
   const brollScale = interpolate(frame, [0, durationInFrames], [1.0, 1.06], {
@@ -213,7 +237,6 @@ const SceneView: React.FC<{
 
   // Render specific motion content
   const renderMotionContent = () => {
-    const motion = scene.motion || 'title';
     const baseColor = isMaroon ? BRAND.cream : BRAND.ink;
     const accentColor = isMaroon ? BRAND.blush : BRAND.rust;
 
@@ -221,7 +244,7 @@ const SceneView: React.FC<{
       const closingOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
       return (
         <div style={{ opacity: closingOpacity, textAlign: 'center' }}>
-          {renderFormattedHeadline(scene.onScreen, BRAND.cream, BRAND.blush, 88)}
+          {onScreen && renderFormattedHeadline(onScreen, BRAND.cream, BRAND.blush, 88)}
           <div
             style={{
               fontFamily: "'Instrument Serif', serif",
@@ -248,56 +271,53 @@ const SceneView: React.FC<{
       );
     }
 
-    if (motion === 'stat') {
-      // Check for number in onScreen text
-      const numMatch = scene.onScreen.match(/(?<![\w.])[-−]?\d+(?:[.,]\d+)?\s?%?/);
-      if (numMatch) {
-        const fullNumStr = numMatch[0].trim();
-        const rawNum = parseFloat(fullNumStr.replace('%', ''));
-        const hasPct = fullNumStr.includes('%');
-        // Count up from 0 to rawNum over 20 frames
-        const currentCount = interpolate(frame, [0, 20], [0, rawNum], {
-          extrapolateRight: 'clamp',
-        });
-        const displayCount = rawNum % 1 !== 0 ? currentCount.toFixed(1) : Math.round(currentCount);
-        const restOfText = scene.onScreen.replace(numMatch[0], '').replace(/\*/g, '').trim();
+    if (motion === 'stat' && stat) {
+      const numMatch = stat.match(/[-−]?\d+(?:[.,]\d+)?/);
+      const rawNum = numMatch ? parseFloat(numMatch[0].replace(',', '.').replace('−', '-')) : NaN;
+      const unit = numMatch ? stat.slice(stat.indexOf(numMatch[0]) + numMatch[0].length).trim() : '';
+      // Count up from 0 to the value over 20 frames
+      const currentCount = interpolate(frame, [0, 20], [0, isNaN(rawNum) ? 0 : rawNum], {
+        extrapolateRight: 'clamp',
+      });
+      const displayCount = isNaN(rawNum)
+        ? stat
+        : `${rawNum % 1 !== 0 ? currentCount.toFixed(1) : Math.round(currentCount)}${unit === '%' ? '%' : unit ? ' ' + unit : ''}`;
+      const restOfText = onScreen.replace(stat, '').replace(/\*/g, '').replace(/\s{2,}/g, ' ').trim();
 
-        return (
-          <div style={{ textAlign: 'center' }}>
+      return (
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              fontFamily: "'Instrument Serif', serif",
+              fontSize: 220,
+              lineHeight: 1,
+              color: BRAND.rust,
+              marginBottom: 20,
+            }}
+          >
+            {displayCount}
+          </div>
+          {restOfText && (
             <div
               style={{
-                fontFamily: "'Instrument Serif', serif",
-                fontSize: 220,
-                lineHeight: 1,
-                color: BRAND.rust,
-                marginBottom: 20,
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 56,
+                lineHeight: 1.25,
+                fontWeight: 500,
+                color: BRAND.ink,
+                maxWidth: 888,
+                margin: '0 auto',
               }}
             >
-              {displayCount}{hasPct ? '%' : ''}
+              {restOfText}
             </div>
-            {restOfText && (
-              <div
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 56,
-                  lineHeight: 1.25,
-                  fontWeight: 500,
-                  color: BRAND.ink,
-                  maxWidth: 888,
-                  margin: '0 auto',
-                }}
-              >
-                {restOfText}
-              </div>
-            )}
-          </div>
-        );
-      }
-      return renderFormattedHeadline(scene.onScreen, baseColor, accentColor, 88);
+          )}
+        </div>
+      );
     }
 
     if (motion === 'list') {
-      const items = scene.onScreen.split(/\s+[·;]\s+/);
+      const items = listItems;
       return (
         <div style={{ maxWidth: 888, margin: '0 auto', textAlign: 'left' }}>
           {items.slice(0, 3).map((item, idx) => {
@@ -369,9 +389,9 @@ const SceneView: React.FC<{
               marginBottom: 24,
             }}
           >
-            {scene.onScreen.replace(/\*/g, '')}
+            {onScreen.replace(/\*/g, '')}
           </div>
-          {citation && (
+          {sceneCitation && (
             <div
               style={{
                 fontFamily: "'Inter', sans-serif",
@@ -380,7 +400,7 @@ const SceneView: React.FC<{
                 color: BRAND.clay,
               }}
             >
-              {citation}
+              {sceneCitation}
             </div>
           )}
         </div>
@@ -388,7 +408,7 @@ const SceneView: React.FC<{
     }
 
     // Default: 'title' motion
-    return renderFormattedHeadline(scene.onScreen, baseColor, accentColor, 88);
+    return renderFormattedHeadline(onScreen, baseColor, accentColor, 88);
   };
 
   return (
@@ -429,18 +449,18 @@ const SceneView: React.FC<{
         </>
       ) : !isMaroon ? (
         <>
-          {/* Procedural drifting blush circles */}
+          {/* Faint, large, very soft blush shapes with a slow drift */}
           <div
             style={{
               position: 'absolute',
               left: `${drift1X}px`,
               top: `${drift1Y}px`,
-              width: 450,
-              height: 450,
+              width: 900,
+              height: 900,
               borderRadius: '50%',
               backgroundColor: BRAND.blush,
-              opacity: 0.25,
-              filter: 'blur(60px)',
+              opacity: 0.16,
+              filter: 'blur(160px)',
               pointerEvents: 'none',
             }}
           />
@@ -449,12 +469,23 @@ const SceneView: React.FC<{
               position: 'absolute',
               left: `${drift2X}px`,
               top: `${drift2Y}px`,
-              width: 550,
-              height: 550,
+              width: 1000,
+              height: 1000,
               borderRadius: '50%',
               backgroundColor: BRAND.blush,
-              opacity: 0.20,
-              filter: 'blur(70px)',
+              opacity: 0.12,
+              filter: 'blur(180px)',
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Paper grain */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: PAPER_GRAIN,
+              backgroundSize: '320px 320px',
+              opacity: 0.05,
               pointerEvents: 'none',
             }}
           />
@@ -484,8 +515,10 @@ const SceneView: React.FC<{
       {/* Layer 3: Subtitles */}
       <Subtitles
         words={scene.words}
+        voiceover={scene.voiceover}
         sceneTimeMs={sceneTimeMs}
         isMaroon={isMaroon}
+        isClosing={isClosing}
       />
 
       {/* Layer 4: Persistent overlays per scene */}
@@ -507,7 +540,7 @@ const SceneView: React.FC<{
         </div>
       )}
 
-      {scene.kind === 'claim' && citation && (
+      {sceneCitation && motion !== 'quote' && (
         <div
           style={{
             position: 'absolute',
@@ -521,7 +554,7 @@ const SceneView: React.FC<{
             zIndex: 10,
           }}
         >
-          {citation}
+          {sceneCitation}
         </div>
       )}
 
@@ -535,10 +568,10 @@ export const Reel: React.FC<ReelProps> = ({ scenes, citation, draft, musicSrc })
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
-  // Calculate sequence ranges
+  // Calculate sequence ranges; the last scene also holds the 1s outro.
   let accumulatedFrames = 0;
-  const sequences = scenes.map(s => {
-    const durationFrames = Math.ceil(((s.durationMs + 200) / 1000) * fps);
+  const sequences = scenes.map((s, i) => {
+    const durationFrames = sceneFrames(s, fps) + (i === scenes.length - 1 ? OUTRO_FRAMES : 0);
     const startFrame = accumulatedFrames;
     accumulatedFrames += durationFrames;
     return {
@@ -547,6 +580,11 @@ export const Reel: React.FC<ReelProps> = ({ scenes, citation, draft, musicSrc })
       durationFrames,
     };
   });
+
+  // The closing scene draws its own wordmark + steerclub.com, so the
+  // persistent top wordmark is hidden there (one sign-off only).
+  const closingSeq = sequences.find(q => q.scene.motion === 'closing');
+  const inClosing = closingSeq ? frame >= closingSeq.startFrame : false;
 
   // Music volume with fade-in (15 frames) and fade-out (30 frames)
   const musicVolume = interpolate(
@@ -589,6 +627,7 @@ export const Reel: React.FC<ReelProps> = ({ scenes, citation, draft, musicSrc })
               fontSize: 44,
               color: BRAND.rust,
               lineHeight: 1,
+              opacity: inClosing ? 0 : 1,
             }}
           >
             steer

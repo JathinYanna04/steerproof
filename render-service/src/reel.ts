@@ -11,8 +11,10 @@ const renderQueue: Array<() => Promise<any>> = [];
 export function getBundleLocation(): Promise<string> {
   if (!bundlePromise) {
     const entryPoint = path.resolve(__dirname, '../remotion/index.ts');
+    // assets/ is Remotion's public dir so fonts load via staticFile().
+    const publicDir = path.resolve(__dirname, '../assets');
     console.log('Bundling Remotion at startup from:', entryPoint);
-    bundlePromise = bundle({ entryPoint })
+    bundlePromise = bundle({ entryPoint, publicDir })
       .then(loc => {
         console.log('Remotion bundle ready at:', loc);
         return loc;

@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { brand, getCssVariables } from './brand.js';
 import { escapeHtml, toHeadline } from './escape.js';
+import { isClaim, resolveCitation, stripSignOff, dropCitationSentences, statFor } from './textRules.js';
 
 const ASSETS_DIR = path.resolve(__dirname, '../assets');
 const FONTS_DIR = path.join(ASSETS_DIR, 'fonts');
@@ -139,8 +140,9 @@ function getBaseStyles(width: number = 1080, height: number = 1350): string {
 
     .footer {
       display: flex;
-      justifyContent: space-between;
+      justify-content: space-between;
       align-items: flex-end;
+      gap: 48px;
       width: 100%;
       z-index: 10;
     }
@@ -163,6 +165,14 @@ function getBaseStyles(width: number = 1080, height: number = 1350): string {
       font-family: 'Instrument Serif', serif;
       font-style: italic;
       color: var(--rust);
+    }
+
+    .citation-line {
+      font-family: 'Inter', sans-serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--clay);
+      margin-top: 28px;
     }
 
     .caveat-aside {
@@ -220,11 +230,19 @@ export function buildSlideHtml(slide: any, totalSlides: number, citation: string
   const isClosing = type === 'closing' || slideNum === totalSlides;
   const isMaroon = isClosing && (slide.background === 'maroon' || type === 'closing');
 
-  const headlineRaw = slide.headline || '';
-  const bodyRaw = slide.body || '';
+  // The template draws the wordmark and steerclub.com, so copy never repeats them.
+  const headlineRaw = stripSignOff(slide.headline || '');
+  const bodyRaw = stripSignOff(slide.body || '');
 
   const headlineHtml = toHeadline(headlineRaw);
   const bodyHtml = escapeHtml(bodyRaw);
+
+  // Citation lines only on claim slides and the source slide, and only from the
+  // citation built from paper metadata, never from writer copy.
+  const citationText = resolveCitation(slide, citation);
+  const citationLine = isClaim(slide) && citationText
+    ? `<div class="citation-line">${escapeHtml(citationText)}</div>`
+    : '';
 
   let middleContent = '';
 
@@ -253,14 +271,18 @@ export function buildSlideHtml(slide: any, totalSlides: number, citation: string
     `;
   } else if (type === 'source') {
     const reviewStatusText = draft ? 'Pending doctor review' : 'Reviewed and approved for Steer';
+    const caveat = dropCitationSentences(bodyRaw);
     middleContent = `
       <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 888px; z-index: 10;">
         <h2 data-block-id="slide${slideNum}.headline" style="font-family: 'Instrument Serif', serif; font-size: 84px; line-height: 1.05; font-weight: 400; color: var(--ink); margin-bottom: 32px;">
           Where this <em class="accent">comes</em> from
         </h2>
-        <p data-block-id="slide${slideNum}.body" style="font-family: 'Inter', sans-serif; font-size: 30px; line-height: 1.4; color: var(--ink); margin-bottom: 24px;">
-          ${bodyHtml || escapeHtml(citation)}
+        <p style="font-family: 'Inter', sans-serif; font-size: 34px; line-height: 1.35; font-weight: 500; color: var(--ink); margin-bottom: 20px;">
+          ${escapeHtml(citationText)}
         </p>
+        ${caveat ? `<p data-block-id="slide${slideNum}.body" style="font-family: 'Inter', sans-serif; font-size: 30px; line-height: 1.4; color: var(--ink); margin-bottom: 24px;">
+          ${escapeHtml(caveat)}
+        </p>` : ''}
         <div style="font-family: 'Inter', sans-serif; font-size: 24px; color: var(--clay); font-weight: 500;">
           ${reviewStatusText}
         </div>
@@ -272,9 +294,9 @@ export function buildSlideHtml(slide: any, totalSlides: number, citation: string
         <h1 data-block-id="slide${slideNum}.headline" style="font-family: 'Instrument Serif', serif; font-size: 88px; line-height: 1.05; font-weight: 400; color: var(--cream); margin-bottom: 32px;">
           ${headlineHtml}
         </h1>
-        <p data-block-id="slide${slideNum}.body" style="font-family: 'Inter', sans-serif; font-size: 32px; line-height: 1.4; color: var(--cream); margin-bottom: 48px;">
+        ${bodyHtml ? `<p data-block-id="slide${slideNum}.body" style="font-family: 'Inter', sans-serif; font-size: 32px; line-height: 1.4; color: var(--cream); margin-bottom: 48px;">
           ${bodyHtml}
-        </p>
+        </p>` : ''}
         <div style="font-family: 'Instrument Serif', serif; font-size: 72px; color: var(--cream); line-height: 1; margin-bottom: 12px;">
           steer
         </div>
@@ -284,12 +306,12 @@ export function buildSlideHtml(slide: any, totalSlides: number, citation: string
       </div>
     `;
   } else {
-    // Default: 'point' slide
-    // Check if body contains a number for the big stat treatment
-    const numMatch = bodyRaw.match(/(?<![\w.])[-−]?\d+(?:[.,]\d+)?\s?%?/);
-    const statHeader = numMatch ? `
+    // Default: 'point' slide. Big number only for outcome values the
+    // writer/validator flagged statEligible (never counts of studies or people).
+    const stat = statFor(slide, bodyRaw);
+    const statHeader = stat ? `
       <div data-block-id="slide${slideNum}.stat" style="font-family: 'Instrument Serif', serif; font-size: 160px; line-height: 1; color: var(--rust); margin-bottom: 20px;">
-        ${escapeHtml(numMatch[0])}
+        ${escapeHtml(stat)}
       </div>
     ` : '';
 
@@ -302,6 +324,7 @@ export function buildSlideHtml(slide: any, totalSlides: number, citation: string
         <p data-block-id="slide${slideNum}.body" style="font-family: 'Inter', sans-serif; font-size: 36px; line-height: 1.4; color: var(--ink);">
           ${bodyHtml}
         </p>
+        ${citationLine}
       </div>
     `;
   }
@@ -326,13 +349,13 @@ export function buildSlideHtml(slide: any, totalSlides: number, citation: string
 
     ${middleContent}
 
-    <div>
+    ${isClosing ? '' : `<div>
       <div class="footer-divider"></div>
       <div class="footer" data-block-id="slide${slideNum}.footer">
         <div class="wordmark">steer</div>
         <div class="url">steerclub.com</div>
       </div>
-    </div>
+    </div>`}
   </div>
 </body>
 </html>`;
@@ -345,9 +368,11 @@ export function buildStaticHtml(
   width: number = 1080,
   height: number = 1350
 ): string {
-  const headlineHtml = toHeadline(staticContent.headline || '');
-  const supportHtml = escapeHtml(staticContent.support || '');
-  const footnoteHtml = escapeHtml(staticContent.footnote || citation || '');
+  const headlineHtml = toHeadline(stripSignOff(staticContent.headline || ''));
+  const supportHtml = escapeHtml(stripSignOff(staticContent.support || ''));
+  // Source line from the metadata-built citation only; the writer's footnote is ignored.
+  const footnoteText = isClaim(staticContent) ? resolveCitation(staticContent, citation) : '';
+  const footnoteHtml = escapeHtml(footnoteText);
 
   const isSquare = width === 1080 && height === 1080;
   const isStory = width === 1080 && height === 1920;
@@ -383,9 +408,9 @@ export function buildStaticHtml(
       <p data-block-id="static.support" style="font-family: 'Inter', sans-serif; font-size: ${supportSize}; line-height: 1.4; color: var(--ink); margin-bottom: 32px;">
         ${supportHtml}
       </p>
-      <div data-block-id="static.footnote" style="font-family: 'Inter', sans-serif; font-size: 22px; color: var(--clay); font-weight: 500;">
+      ${footnoteHtml ? `<div data-block-id="static.footnote" style="font-family: 'Inter', sans-serif; font-size: 22px; color: var(--clay); font-weight: 500;">
         ${footnoteHtml}
-      </div>
+      </div>` : ''}
     </div>
 
     <div>
