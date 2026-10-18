@@ -818,9 +818,56 @@ public class PipelineService {
         };
 
         try {
-            saveAndCheckAsset(paperId, asset.getType(), contentMap, claimsById);
+            AssetEntity saved = saveAndCheckAsset(paperId, asset.getType(), contentMap, claimsById);
+            if (saved != null && saved.getStatus() != AssetStatus.BLOCKED) {
+                if (saved.getType() == AssetType.CAPTION) {
+                    saved.setStatus(AssetStatus.RENDERED);
+                    assetRepository.save(saved);
+                } else {
+                    reRenderAsset(saved, true);
+                    saved.setStatus(AssetStatus.RENDERED);
+                    assetRepository.save(saved);
+                }
+            }
         } catch (Exception e) {
             log.error("Failed to regenerate asset {}: {}", asset.getId(), e.getMessage(), e);
         }
+    }
+
+    public void reRenderAsset(AssetEntity asset, boolean draft) throws Exception {
+        String paperId = asset.getPaperId();
+        PaperEntity paper = paperRepository.findById(paperId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + paperId));
+        String citation = com.steerclub.steerproof.common.CitationHelper.formatShortCitation(paper.getAuthors(), paper.getYear(), paper.getJournal());
+
+        if (asset.getType() == AssetType.CAROUSEL) {
+            JsonNode content = objectMapper.readTree(asset.getContent());
+            JsonNode slidesNode = content.has("slides") ? content.get("slides") : content;
+            List<Map<String, Object>> slidesList = objectMapper.convertValue(slidesNode, new TypeReference<List<Map<String, Object>>>() {});
+            RenderServiceClient.RenderResult res = renderServiceClient.renderCarousel(paperId, slidesList, citation, draft);
+            asset.setRenderPaths(objectMapper.writeValueAsString(res.paths()));
+            if (content.isObject()) {
+                ((ObjectNode) content).set("blocks", objectMapper.valueToTree(res.blocks()));
+                asset.setContent(objectMapper.writeValueAsString(content));
+            }
+        } else if (asset.getType() == AssetType.STATIC) {
+            JsonNode content = objectMapper.readTree(asset.getContent());
+            Map<String, Object> staContentMap = objectMapper.convertValue(content, new TypeReference<Map<String, Object>>() {});
+            RenderServiceClient.RenderResult res = renderServiceClient.renderStatic(paperId, staContentMap, citation, draft);
+            asset.setRenderPaths(objectMapper.writeValueAsString(res.paths()));
+            if (content.isObject()) {
+                ((ObjectNode) content).set("blocks", objectMapper.valueToTree(res.blocks()));
+                asset.setContent(objectMapper.writeValueAsString(content));
+            }
+        } else if (asset.getType() == AssetType.REEL) {
+            JsonNode content = objectMapper.readTree(asset.getContent());
+            JsonNode scenesNode = content.has("scenes") ? content.get("scenes") : content;
+            List<Map<String, Object>> scenesList = objectMapper.convertValue(scenesNode, new TypeReference<List<Map<String, Object>>>() {});
+            Map<String, Object> res = renderServiceClient.renderReel(paperId, scenesList, citation, draft);
+            if (res != null && res.containsKey("path")) {
+                asset.setRenderPaths(objectMapper.writeValueAsString(List.of(res.get("path"))));
+            }
+        }
+        assetRepository.save(asset);
     }
 }

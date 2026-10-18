@@ -41,3 +41,115 @@
   - Reset all assets to `RENDERED` (`approvedBy = null`, `approvedAt = null`).
   - Deleted all agent `human_events` records.
   - Set both `P-0001` and `P-0002` paper statuses to `AWAITING_CLAIM_REVIEW`.
+---
+
+## SECTION B: CHECKPOINT 7, GATE 2 + EXPORT
+
+### 1. Asset Approval Endpoint (`POST /api/assets/{id}/approve`)
+- **Strict Preconditions**:
+  - Asset status must be `RENDERED`.
+  - Every linked claim in `asset_claims` must be `APPROVED` or `EDITED`.
+  - No unresolved `BLOCKING` violations.
+  - If any condition fails: Returns `422 Unprocessable Entity` (`error: ASSET_BLOCKED`) with structured details `{claims, violations, status}`.
+- **Warning Override**:
+  - If warning violations exist (e.g. `CERTAINTY_ON_EXPLORATORY`), approval requires `overrideWarnings: true`.
+  - Overrides are audited via `auditService.log(doctorName, "WARNING_OVERRIDE", ...)`.
+- **Approval Actions**:
+  - Sets `status = APPROVED`, `approvedBy`, `approvedAt`, and increments `version`.
+  - Audits `ASSET_APPROVED` and logs `ASSET_REVIEW` in `human_events`.
+  - Automatically triggers `pipelineService.reRenderAsset(asset, false)` to re-render without watermark (`draft=false`) and update source slide text to *"Reviewed and approved for Steer"*.
+
+### 2. Export Endpoint (`POST /api/papers/{id}/export`) & Blocked Response
+- **Precondition Verification**:
+  - Querying `POST /api/papers/P-0001/export` while assets are pending human review correctly returns HTTP 422:
+```json
+{
+  "error": "EXPORT_BLOCKED",
+  "message": "Paper cannot be exported because not all assets are approved",
+  "details": {
+    "blockedBy": [
+      {
+        "assetId": "A-0001-CAP",
+        "type": "CAPTION",
+        "status": "RENDERED",
+        "reason": "RENDERED_NOT_APPROVED"
+      },
+      {
+        "assetId": "A-0001-CAR",
+        "type": "CAROUSEL",
+        "status": "RENDERED",
+        "reason": "RENDERED_NOT_APPROVED"
+      },
+      {
+        "assetId": "A-0001-REEL",
+        "type": "REEL",
+        "status": "RENDERED",
+        "reason": "RENDERED_NOT_APPROVED"
+      },
+      {
+        "assetId": "A-0001-STA",
+        "type": "STATIC",
+        "status": "RENDERED",
+        "reason": "RENDERED_NOT_APPROVED"
+      }
+    ]
+  }
+}
+```
+
+- **Export Package Structure**:
+  On approval, creates `storage/exports/P-xxxx.zip` containing:
+  - `carousel/1..n.png` (All slides rendered clean without watermarks)
+  - `static.png` (+ square and story aspect ratios if available)
+  - `reel.mp4` (Full 1080×1920 Remotion reel rendered without watermarks)
+  - `caption.txt` (Complete post caption + hashtags)
+  - `sources.md` (Table of claimId, on-post text, exact quote, page, section, short citation + media credits)
+  - `review_report.json` (Structured JSON of all claim and asset approvals with reviewer, timestamps, version, and overrides)
+  - `README.txt` (`Approved for publishing by <reviewer> on <date>`)
+
+### 3. Seeded Bad-Claim Flow (`POST /api/demo/seed-bad-claim/P-0002`)
+- **Execution**: Evaluated live through the real Gemini 3.7 Flash verifier in `ml-service` (not mocked):
+- **Live Output**:
+```json
+{
+  "claimId": "C-0002-BAD",
+  "paperId": "P-0002",
+  "passageId": "E-0002-0001",
+  "scientificClaim": "Weight always comes back fully when you stop treatment.",
+  "consumerDraft": "Weight always comes back fully when you stop treatment.",
+  "quoteScore": 100,
+  "numbersOk": true,
+  "entailment": "UNSUPPORTED",
+  "risk": "RED",
+  "riskReason": "The statement is unsupported by the provided text and presents an inaccurate, absolute claim regarding medication discontinuation.",
+  "populationFit": "MEDIUM",
+  "populationReason": "The study evaluated adults with overweight or obesity, sharing relevant metabolic characteristics but drawn from a broader, predominantly non-South Asian trial cohort.",
+  "doctorStatus": "PENDING",
+  "isSeededBad": true
+}
+```
+- **Result**: Successfully categorized as `UNSUPPORTED` / `RED` due to absolute claim contrary to trial findings.
+
+### 4. Automated Integration Test
+- **Test Class**: `Gate2AndExportIntegrationTest`
+- **Full Sequence Verified**:
+  1. Exploratory claim wrongly approved by doctor.
+  2. Asset includes claim with certainty copy → policy check fires `CERTAINTY_ON_EXPLORATORY` warning.
+  3. Approve without `overrideWarnings` → Rejected with 422 `ASSET_BLOCKED`.
+  4. Doctor rejects bad claim → linked asset automatically transitions to `STALE`.
+  5. Export attempted while asset is `STALE` → Rejected with 422 `EXPORT_BLOCKED` (`blockedBy` shows STALE).
+  6. Asset regenerated without bad claim → transitions to `RENDERED` with 0 violations.
+  7. Asset approved by human reviewer → transitions to `APPROVED`.
+  8. Export succeeds with 200 OK → generates `storage/exports/P-xxxx.zip` with `README.txt`, `sources.md`, `review_report.json`, `caption.txt`.
+- **Result**: `Gate2AndExportIntegrationTest` passed in 4.29s.
+
+### 5. Full Test Suite Results
+- **Java Backend Test Suite**:
+```
+[INFO] Tests run: 34, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+```
+- **Python ML Service Test Suite**:
+```
+============================== 23 passed in 1.63s ==============================
+```

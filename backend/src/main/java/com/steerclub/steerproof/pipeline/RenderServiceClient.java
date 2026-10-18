@@ -57,6 +57,20 @@ public class RenderServiceClient {
                 .body(RenderResult.class);
     }
 
+    public Map<String, Object> renderReel(String paperId, List<Map<String, Object>> scenes, String citation, boolean draft) {
+        return restClient.post()
+                .uri("/reel")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "paperId", paperId,
+                        "scenes", scenes,
+                        "citation", citation != null ? citation : "",
+                        "draft", draft
+                ))
+                .retrieve()
+                .body(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
+    }
+
     public record RenderBlock(Integer slide, String blockId, int x, int y, int w, int h) {}
     public record RenderResult(List<String> paths, List<RenderBlock> blocks) {}
 }

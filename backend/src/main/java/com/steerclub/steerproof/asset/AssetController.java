@@ -24,10 +24,16 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.steerclub.steerproof.metric.HumanEventEntity;
+import com.steerclub.steerproof.metric.HumanEventRepository;
 
 @RestController
 @RequestMapping("/api")
 public class AssetController {
+
+    private static final Logger log = LoggerFactory.getLogger(AssetController.class);
 
     private final AssetRepository assetRepository;
     private final AssetClaimRepository assetClaimRepository;
@@ -37,6 +43,7 @@ public class AssetController {
     private final PipelineService pipelineService;
     private final PolicyChecker policyChecker;
     private final AuditService auditService;
+    private final HumanEventRepository humanEventRepository;
     private final ObjectMapper objectMapper;
 
     public AssetController(
@@ -48,6 +55,7 @@ public class AssetController {
             PipelineService pipelineService,
             PolicyChecker policyChecker,
             AuditService auditService,
+            HumanEventRepository humanEventRepository,
             ObjectMapper objectMapper
     ) {
         this.assetRepository = assetRepository;
@@ -58,6 +66,7 @@ public class AssetController {
         this.pipelineService = pipelineService;
         this.policyChecker = policyChecker;
         this.auditService = auditService;
+        this.humanEventRepository = humanEventRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -157,5 +166,114 @@ public class AssetController {
 
         auditService.log("doctor", "ASSET_SCHEDULED", "asset", assetId, Map.of(), Map.of("scheduledFor", dateStr));
         return ResponseEntity.ok(asset);
+    }
+
+    public record AssetApprovalRequest(
+            String doctorName,
+            Integer reviewSeconds,
+            Boolean overrideWarnings
+    ) {}
+
+    @PostMapping("/assets/{assetId}/approve")
+    @Transactional
+    public ResponseEntity<?> approveAsset(
+            @PathVariable("assetId") String assetId,
+            @RequestBody(required = false) AssetApprovalRequest req
+    ) {
+        AssetEntity asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Asset not found: " + assetId));
+
+        String doctorName = (req != null && req.doctorName() != null && !req.doctorName().isBlank())
+                ? req.doctorName().trim()
+                : "Jathin Reddy Yanna (non-clinician reviewer)";
+        int reviewSec = (req != null && req.reviewSeconds() != null) ? req.reviewSeconds() : 0;
+        boolean overrideWarnings = req != null && Boolean.TRUE.equals(req.overrideWarnings());
+
+        // 1. Status must be RENDERED
+        boolean isRendered = (asset.getStatus() == AssetStatus.RENDERED);
+
+        // 2. Linked claims must all be APPROVED or EDITED
+        List<AssetClaimEntity> links = assetClaimRepository.findByAssetId(assetId);
+        List<Map<String, String>> unapprovedClaims = new ArrayList<>();
+        for (AssetClaimEntity link : links) {
+            if (link.getClaimId() != null) {
+                ClaimEntity claim = claimRepository.findById(link.getClaimId()).orElse(null);
+                if (claim != null) {
+                    if (claim.getDoctorStatus() != DoctorStatus.APPROVED && claim.getDoctorStatus() != DoctorStatus.EDITED) {
+                        unapprovedClaims.add(Map.of("claimId", claim.getId(), "status", claim.getDoctorStatus().name()));
+                    }
+                }
+            }
+        }
+
+        // 3. Check violations
+        List<PolicyViolationEntity> violations = policyViolationRepository.findByAssetId(assetId);
+        List<Map<String, String>> blockingViolations = new ArrayList<>();
+        List<Map<String, String>> warningViolations = new ArrayList<>();
+        for (PolicyViolationEntity v : violations) {
+            if (v.getSeverity() == Severity.BLOCKING && !Boolean.TRUE.equals(v.getResolved())) {
+                blockingViolations.add(Map.of("rule", v.getRule(), "location", v.getLocation() != null ? v.getLocation() : "", "detail", v.getDetail() != null ? v.getDetail() : ""));
+            } else if (v.getSeverity() == Severity.WARNING && !Boolean.TRUE.equals(v.getResolved())) {
+                warningViolations.add(Map.of("rule", v.getRule(), "location", v.getLocation() != null ? v.getLocation() : "", "detail", v.getDetail() != null ? v.getDetail() : ""));
+            }
+        }
+
+        // Return 422 if not rendered, or unapproved claims, or blocking violations
+        if (!isRendered || !unapprovedClaims.isEmpty() || !blockingViolations.isEmpty()) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("claims", unapprovedClaims);
+            details.put("violations", blockingViolations);
+            details.put("status", asset.getStatus().name());
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(Map.of(
+                    "error", "ASSET_BLOCKED",
+                    "message", "Asset cannot be approved because it has unmet requirements",
+                    "details", details
+            ));
+        }
+
+        // If warning violations exist but overrideWarnings is false
+        if (!warningViolations.isEmpty() && !overrideWarnings) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("claims", unapprovedClaims);
+            details.put("violations", warningViolations);
+            details.put("status", asset.getStatus().name());
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(Map.of(
+                    "error", "ASSET_BLOCKED",
+                    "message", "Asset contains warnings that must be overridden with overrideWarnings: true",
+                    "details", details
+            ));
+        }
+
+        // If override warnings
+        if (!warningViolations.isEmpty() && overrideWarnings) {
+            auditService.log(doctorName, "WARNING_OVERRIDE", "asset", assetId, Map.of(), Map.of("warnings", warningViolations));
+        }
+
+        // Perform approval
+        int oldVersion = asset.getVersion() != null ? asset.getVersion() : 1;
+        asset.setStatus(AssetStatus.APPROVED);
+        asset.setApprovedBy(doctorName);
+        asset.setApprovedAt(Instant.now());
+        asset.setVersion(oldVersion + 1);
+
+        auditService.log(doctorName, "ASSET_APPROVED", "asset", assetId, Map.of("version", oldVersion), Map.of("version", asset.getVersion(), "status", "APPROVED"));
+        humanEventRepository.save(new HumanEventEntity(asset.getPaperId(), doctorName, "ASSET_REVIEW", reviewSec));
+
+        // Re-render asset with draft=false
+        try {
+            pipelineService.reRenderAsset(asset, false);
+        } catch (Exception e) {
+            log.error("Failed to re-render approved asset without watermark: {}", e.getMessage(), e);
+        }
+
+        assetRepository.save(asset);
+
+        return ResponseEntity.ok(Map.of(
+                "assetId", asset.getId(),
+                "status", asset.getStatus().name(),
+                "version", asset.getVersion(),
+                "approvedBy", asset.getApprovedBy(),
+                "approvedAt", asset.getApprovedAt()
+        ));
     }
 }
