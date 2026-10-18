@@ -1,7 +1,7 @@
 import re
 
-NUM_RANGE_REGEX = re.compile(r"(\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(\d+(?:\.\d+)?)\s*(%|percent)?", re.IGNORECASE)
-SINGLE_NUM_REGEX = re.compile(r"(?<![\w.])[-−]?\d+(?:[.,]\d+)?\s*(?:%|percent)?", re.IGNORECASE)
+NUM_RANGE_REGEX = re.compile(r"(\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(\d+(?:\.\d+)?)(?:\s*(?:%|\bpercent\b))?", re.IGNORECASE)
+SINGLE_NUM_REGEX = re.compile(r"(?<![\w.])[-−]?\d+(?:[.,]\d+)?(?:\s*(?:%|\bpercent\b))?", re.IGNORECASE)
 
 def normalize_text_for_numbers(text: str) -> str:
     if not text:

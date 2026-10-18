@@ -233,8 +233,8 @@ public class PipelineService {
                 List<ClaimEntity> newClaims = new ArrayList<>();
                 Set<String> processedIds = new HashSet<>();
 
-                for (int i = 0; i < extractedClaims.size(); i++) {
-                    MlServiceClient.ExtractedClaimDto raw = extractedClaims.get(i);
+                for (int i = 0; i < verifyInput.size(); i++) {
+                    MlServiceClient.VerifyClaimDto raw = verifyInput.get(i);
                     MlServiceClient.VerifyItemDetailDto detail = detailMap.get(i);
 
                     String claimId = idGenerator.claimId(paperId, i + 1);

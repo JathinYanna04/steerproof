@@ -14,6 +14,9 @@ import com.steerclub.steerproof.pipeline.PipelineRunEntity;
 import com.steerclub.steerproof.pipeline.PipelineRunRepository;
 import com.steerclub.steerproof.pipeline.PipelineService;
 import com.steerclub.steerproof.storage.StorageService;
+import com.steerclub.steerproof.metric.HumanEventEntity;
+import com.steerclub.steerproof.metric.HumanEventRepository;
+import com.steerclub.steerproof.review.ReviewService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -39,6 +42,8 @@ public class PaperController {
     private final StorageService storageService;
     private final IdGenerator idGenerator;
     private final ObjectMapper objectMapper;
+    private final ReviewService reviewService;
+    private final HumanEventRepository humanEventRepository;
 
     public PaperController(
             PaperRepository paperRepository,
@@ -48,7 +53,9 @@ public class PaperController {
             PipelineService pipelineService,
             StorageService storageService,
             IdGenerator idGenerator,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ReviewService reviewService,
+            HumanEventRepository humanEventRepository
     ) {
         this.paperRepository = paperRepository;
         this.passageRepository = passageRepository;
@@ -58,6 +65,8 @@ public class PaperController {
         this.storageService = storageService;
         this.idGenerator = idGenerator;
         this.objectMapper = objectMapper;
+        this.reviewService = reviewService;
+        this.humanEventRepository = humanEventRepository;
     }
 
     @PostConstruct
@@ -230,82 +239,48 @@ public class PaperController {
         }).toList();
     }
 
-    @GetMapping("/papers/{id}/claims")
-    public List<Map<String, Object>> getClaims(@PathVariable("id") String id) {
-        List<ClaimEntity> claims = claimRepository.findByPaperIdOrderByIdAsc(id);
-        Map<String, PassageEntity> passageMap = new HashMap<>();
-        for (PassageEntity p : passageRepository.findByPaperIdOrderByOrdAsc(id)) {
-            passageMap.put(p.getId(), p);
+    @PostMapping("/papers/{id}/generate")
+    public ResponseEntity<?> generatePaperAssets(@PathVariable("id") String id) {
+        PaperEntity paper = paperRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + id));
+
+        ReviewService.Gate1Result gate1 = reviewService.checkGate1(id);
+        if (!gate1.ok()) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("pending", gate1.pending());
+            details.put("needsEvidence", gate1.needsEvidence());
+            details.put("approvedCount", gate1.approvedCount());
+
+            Map<String, Object> err = new LinkedHashMap<>();
+            err.put("error", "GATE1_BLOCKED");
+            err.put("message", "Gate 1 blocked: all claims must be reviewed (none PENDING or NEEDS_EVIDENCE) and at least 3 claims must be APPROVED or EDITED.");
+            err.put("details", details);
+
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(err);
         }
 
-        return claims.stream().map(c -> toClaimMap(c, passageMap.get(c.getPassageId()))).toList();
+        paper.setStatus(PaperStatus.WRITING);
+        paperRepository.save(paper);
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of(
+                "paperId", paper.getId(),
+                "status", PaperStatus.WRITING.name()
+        ));
     }
 
-    @GetMapping("/claims/{claimId}")
-    public Map<String, Object> getClaim(@PathVariable("claimId") String claimId) {
-        ClaimEntity claim = claimRepository.findById(claimId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Claim not found: " + claimId));
+    @PostMapping("/papers/{id}/human-events")
+    public ResponseEntity<Void> logHumanEvent(
+            @PathVariable("id") String id,
+            @RequestBody Map<String, Object> body
+    ) {
+        paperRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + id));
 
-        PassageEntity passage = claim.getPassageId() != null
-                ? passageRepository.findById(claim.getPassageId()).orElse(null)
-                : null;
-
-        return toClaimMap(claim, passage);
-    }
-
-    private Map<String, Object> toClaimMap(ClaimEntity c, PassageEntity passage) {
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("claimId", c.getId());
-        map.put("paperId", c.getPaperId());
-        map.put("scientificClaim", c.getScientificClaim());
-        map.put("consumerDraft", c.getConsumerDraft());
-        map.put("quote", c.getQuote());
-
-        try {
-            map.put("numbers", c.getNumbers() != null ? objectMapper.readValue(c.getNumbers(), Object.class) : List.of());
-        } catch (Exception e) {
-            map.put("numbers", List.of());
-        }
-
-        map.put("studyDesign", c.getStudyDesign());
-        map.put("population", c.getPopulation());
-        map.put("findingClass", c.getFindingClass() != null ? c.getFindingClass().name() : null);
-
-        try {
-            map.put("limitations", c.getLimitations() != null ? objectMapper.readValue(c.getLimitations(), Object.class) : List.of());
-        } catch (Exception e) {
-            map.put("limitations", List.of());
-        }
-
-        map.put("quoteScore", c.getQuoteScore());
-        map.put("numbersOk", c.getNumbersOk());
-        map.put("entailment", c.getEntailment() != null ? c.getEntailment().name() : null);
-        map.put("risk", c.getRisk() != null ? c.getRisk().name() : null);
-        map.put("riskReason", c.getRiskReason());
-        map.put("populationFit", c.getPopulationFit() != null ? c.getPopulationFit().name() : null);
-        map.put("populationReason", c.getPopulationReason());
-        map.put("doctorStatus", c.getDoctorStatus().name());
-        map.put("editedCopy", c.getEditedCopy());
-
-        if (passage != null) {
-            Map<String, Object> pMap = new LinkedHashMap<>();
-            pMap.put("passageId", passage.getId());
-            pMap.put("page", passage.getPage());
-            try {
-                pMap.put("bbox", passage.getBbox() != null ? objectMapper.readValue(passage.getBbox(), Object.class) : null);
-            } catch (Exception e) {
-                pMap.put("bbox", null);
-            }
-            pMap.put("pageWidth", passage.getPageWidth());
-            pMap.put("pageHeight", passage.getPageHeight());
-            pMap.put("section", passage.getSection());
-            map.put("passage", pMap);
-        } else {
-            map.put("passage", null);
-        }
-
-        map.put("usedIn", List.of());
-        return map;
+        String actor = (String) body.getOrDefault("actor", "Doctor");
+        String kind = (String) body.getOrDefault("kind", "MANUAL");
+        Number secondsNum = (Number) body.getOrDefault("seconds", 0);
+        humanEventRepository.save(new HumanEventEntity(id, actor, kind, secondsNum.intValue()));
+        return ResponseEntity.ok().build();
     }
 
     private Map<String, Object> computePaperStats(String paperId) {
@@ -326,6 +301,13 @@ public class PaperController {
             if (c.getReviewSeconds() != null) reviewSecs += c.getReviewSeconds();
         }
 
+        List<HumanEventEntity> events = humanEventRepository.findByPaperIdOrderByAtAsc(paperId);
+        int humanSeconds = 0;
+        for (HumanEventEntity ev : events) {
+            if (ev.getSeconds() != null) humanSeconds += ev.getSeconds();
+        }
+        if (humanSeconds == 0) humanSeconds = reviewSecs;
+
         List<PipelineRunEntity> runs = pipelineRunRepository.findByPaperIdOrderByStartedAtAsc(paperId);
         long pipelineSeconds = 0;
         for (PipelineRunEntity r : runs) {
@@ -341,7 +323,7 @@ public class PaperController {
         stats.put("claimsRejected", rejected);
         stats.put("claimsAutoFlagged", flagged);
         stats.put("doctorReviewSeconds", reviewSecs);
-        stats.put("humanSecondsTotal", reviewSecs);
+        stats.put("humanSecondsTotal", humanSeconds);
         stats.put("pipelineSeconds", pipelineSeconds);
         return stats;
     }

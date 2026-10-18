@@ -8,10 +8,10 @@ class Settings(BaseSettings):
     )
 
     gemini_api_key: str = ""
-    gemini_model_extract: str = "gemini-3.8-flash"
-    gemini_model_verify: str = "gemini-3.8-flash"
-    gemini_model_write: str = "gemini-3.8-flash"
-    gemini_model: str = "gemini-3.8-flash"
+    gemini_model_extract: str = "gemini-3.7-flash"
+    gemini_model_verify: str = "gemini-3.7-flash"
+    gemini_model_write: str = "gemini-3.7-flash"
+    gemini_model: str = "gemini-3.7-flash"
     llm_cache_dir: Path = Path("./.cache/llm")
     llm_max_rpm: int = 8
     groq_api_key: str = ""

@@ -60,3 +60,11 @@ def test_word_half_does_not_satisfy_50_percent():
     ok, missing = check_numbers(claim, None, quote)
     assert ok is False
     assert "50%" in missing
+
+def test_week_120_comparison():
+    # quote contains "week 120", draft says "by week 120" -> numbersOk = true
+    quote = "Treatment was evaluated at week 120."
+    draft = "Participants were assessed by week 120."
+    ok, missing = check_numbers("", draft, quote)
+    assert ok is True
+    assert missing == []

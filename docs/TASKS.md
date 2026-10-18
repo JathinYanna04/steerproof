@@ -39,9 +39,9 @@ Work top to bottom. Each item is small enough for one agent task. Tick it off wh
 - [x] Persist passages and claims; set NEEDS_EVIDENCE by quote score
 
 ## Gate 1
-- [ ] `PATCH /api/claims/{id}` with the action rules + re-verify on EDIT with a passageId
-- [ ] `ReviewService.canWrite` + `POST /api/papers/{id}/generate` 422 shape
-- [ ] `human_events` logging of review seconds
+- [x] `PATCH /api/claims/{id}` with the action rules + re-verify on EDIT with a passageId
+- [x] `ReviewService.canWrite` + `POST /api/papers/{id}/generate` 422 shape
+- [x] `human_events` logging of review seconds
 
 ## Writer and policy
 - [ ] `/write` with validation + one retry with errors

@@ -23,9 +23,11 @@ public class AssetEntity {
     @Column(nullable = false)
     private String language = "en";
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private String content;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "render_paths", nullable = false, columnDefinition = "jsonb")
     private String renderPaths = "[]";
 

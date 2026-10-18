@@ -29,6 +29,11 @@ RULES (all mandatory)
 7. "limitations": limitations the paper states that apply to THIS claim. Empty list if none stated.
 8. "consumerDraft": one short, warm sentence (max 20 words) for a lay reader. It must not
    add any fact beyond scientificClaim. No drug brand names. No promises.
+   Describe what happened to the people studied, not what will happen to the reader.
+   Never use 'you can', 'you will', 'losing X% can...' or any weight-loss amount or
+   timeline aimed at the reader. Keep study-level averages as averages ('on average,
+   people in these studies...'), never 'most people'.
+   In consumerDraft, refer to medicines generically ('the medicine', 'treatment'), never by name.
 9. Do NOT extract: drug dosing, brand names, anything from reference lists, author
    affiliations, or funding statements.
 10. If you are unsure a finding is supported, leave it out.
