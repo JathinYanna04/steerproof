@@ -12,12 +12,20 @@ POST /api/papers                         multipart: file (pdf) | form: url ; opt
 POST /api/papers/batch                   multipart: files[] (≤5)
 → 201 { "batchId":"B-0001", "paperIds":[...] }
 
-GET  /api/papers                         → [{ paperId, title, status, createdAt, stats }]
+GET  /api/papers                         → [{ paperId, title, authors, year, journal, doi, pdfPath, status, createdAt, stats }]  (newest first)
 GET  /api/papers/{id}
-→ { paperId, title, authors, year, journal, doi, status, failedStage, error,
-    stages:[{ stage, startedAt, endedAt, ok, llmCalls, cacheHits }],
-    stats:{ claimsTotal, claimsApproved, claimsEdited, claimsRejected, claimsAutoFlagged,
-            doctorReviewSeconds, humanSecondsTotal, pipelineSeconds } }
+→ { paperId, title, authors, year, journal, doi, status, failedStage, error, createdAt,
+    stages: <same array as /runs>,
+    stats:{ claimsTotal, claimsAutoFlagged, approved, edited, rejected, pending, needsEvidence,
+            reviewSecondsTotal, humanSecondsTotal, pipelineSeconds, pipelineActiveSeconds, writeRenderSeconds } }
+GET  /api/papers/{id}/runs               latest run of each stage, always 5 entries in order PARSE, EXTRACT, VERIFY, WRITE, RENDER
+→ [{ stage, status: DONE|RUNNING|FAILED|WAITING, startedAt, endedAt, seconds, model, llmCalls, cacheHits, error }]
+   model: the Gemini model the ml-service reports on /health for LLM stages, "docling" for PARSE,
+   "playwright + remotion, edge-tts" for RENDER; null for runs recorded before V2.
+   Stats: claimsAutoFlagged = risk AMBER/RED or NEEDS_EVIDENCE as set by the pipeline; humanSecondsTotal = sum of human_events;
+   pipelineSeconds = wall clock from the latest successful PARSE (started before the latest successful VERIFY) to that VERIFY's end,
+   including retry gaps; pipelineActiveSeconds = summed durations of that chain's PARSE, EXTRACT and VERIFY runs;
+   writeRenderSeconds = latest successful WRITE start → end of the last successful RENDER after it. Unknown values are null.
 
 POST /api/papers/{id}/retry              → 202   (resumes from failedStage)
 GET  /api/papers/{id}/pdf                → application/pdf
@@ -83,7 +91,7 @@ POST /api/papers/{id}/export
 → 200 { "zipUrl":"/files/exports/P-0001.zip" }
 → 422 { "error":"EXPORT_BLOCKED", "details":{ "blockedBy":[{ "assetId":"A-0001-REEL", "reason":"STALE" }, { "claimId":"C-0001-009", "reason":"REJECTED but used in scene:3" }] } }
 
-GET /api/metrics.csv                     → one row per paper
+GET /api/metrics.csv                     → text/csv, one row per paper: paperId,title,status + every stats field above (empty = unknown)
 GET /api/batches/{id}/week               → [{ date, assetId, type, paperId, status }]
 GET /api/batches/{id}/calendar.ics
 POST /api/papers/{id}/hinglish           → 202 (bonus; requires all English assets APPROVED)
