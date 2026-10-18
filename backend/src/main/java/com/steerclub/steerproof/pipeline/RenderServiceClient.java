@@ -20,7 +20,8 @@ public class RenderServiceClient {
     ) {
         org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(30));
-        requestFactory.setReadTimeout(Duration.ofSeconds(120));
+        // A 40 s reel takes Remotion well over a minute on a laptop
+        requestFactory.setReadTimeout(Duration.ofSeconds(600));
 
         this.restClient = restClientBuilder
                 .baseUrl(renderServiceUrl)

@@ -215,7 +215,8 @@ async def reel_broll_endpoint(req: ReelBrollRequest):
         results = process_reel_broll(
             scenes=scenes_data,
             storage_dir=settings.storage_dir,
-            api_key=req.apiKey
+            api_key=req.apiKey,
+            used_ids=req.usedIds
         )
         return ReelBrollResponse(results=results, scenes=results)
     except Exception as e:

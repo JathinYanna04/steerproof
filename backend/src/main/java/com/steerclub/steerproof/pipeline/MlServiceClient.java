@@ -109,6 +109,26 @@ public class MlServiceClient {
                 .body(IllustrationCheckResponse.class);
     }
 
+    /** Synthesises per-scene voiceover with edge-tts into storage/audio/{assetId}/scene-{n}.mp3 (+ word timings). */
+    public Map<String, Object> reelAudio(String assetId, List<Map<String, Object>> scenes, String language) {
+        return restClient.post()
+                .uri("/reel/audio")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("assetId", assetId, "scenes", scenes, "language", language != null ? language : "en"))
+                .retrieve()
+                .body(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
+    }
+
+    /** Resolves Pixabay b-roll for all scenes of one reel in a single call (no clip id is reused within the reel). */
+    public Map<String, Object> reelBroll(String assetId, String paperId, List<Map<String, Object>> scenes) {
+        return restClient.post()
+                .uri("/reel/broll")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("assetId", assetId, "paperId", paperId, "scenes", scenes))
+                .retrieve()
+                .body(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
+    }
+
     public record IllustrationItemDto(String id, String text) {}
 
     public record IllustrationVerdictDto(String id, Boolean statesFact, String reason) {}

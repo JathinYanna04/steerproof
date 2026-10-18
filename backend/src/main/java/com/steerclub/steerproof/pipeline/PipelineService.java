@@ -561,6 +561,25 @@ public class PipelineService {
                     assetRepository.save(staAsset);
                 }
 
+                // 3. Render Reel (voiceover + b-roll resolved inside renderReel)
+                Optional<AssetEntity> reelOpt = assetRepository.findById(idGenerator.assetId(paperId, AssetType.REEL));
+                if (reelOpt.isPresent()) {
+                    AssetEntity reelAsset = reelOpt.get();
+                    renderReel(reelAsset, citation, reelAsset.getStatus() != AssetStatus.APPROVED);
+                    if (reelAsset.getStatus() != AssetStatus.BLOCKED && reelAsset.getStatus() != AssetStatus.APPROVED) {
+                        reelAsset.setStatus(AssetStatus.RENDERED);
+                    }
+                    assetRepository.save(reelAsset);
+                }
+
+                // 4. Caption has nothing to render; it is ready for review once its policy check passed
+                assetRepository.findById(idGenerator.assetId(paperId, AssetType.CAPTION)).ifPresent(cap -> {
+                    if (cap.getStatus() == AssetStatus.DRAFT) {
+                        cap.setStatus(AssetStatus.RENDERED);
+                        assetRepository.save(cap);
+                    }
+                });
+
                 run.setEndedAt(Instant.now());
                 run.setOk(true);
                 run.setLlmCalls(0);
@@ -924,14 +943,100 @@ public class PipelineService {
                 asset.setContent(objectMapper.writeValueAsString(content));
             }
         } else if (asset.getType() == AssetType.REEL) {
-            JsonNode content = objectMapper.readTree(asset.getContent());
-            JsonNode scenesNode = content.has("scenes") ? content.get("scenes") : content;
-            List<Map<String, Object>> scenesList = objectMapper.convertValue(scenesNode, new TypeReference<List<Map<String, Object>>>() {});
-            Map<String, Object> res = renderServiceClient.renderReel(paperId, scenesList, citation, draft);
-            if (res != null && res.containsKey("path")) {
-                asset.setRenderPaths(objectMapper.writeValueAsString(List.of(res.get("path"))));
-            }
+            renderReel(asset, citation, draft);
         }
         assetRepository.save(asset);
+    }
+
+    private static final Set<String> BROLL_FIELDS = Set.of(
+            "videoPath", "source", "url", "creator", "userId", "creditLine", "tags", "sizeUsed", "hitId", "reason", "searchedQuery");
+
+    /**
+     * Voiceover (edge-tts) and b-roll (Pixabay) come from ml-service and are merged into the stored
+     * scenes, so timings and clip credits are persisted with the asset, then Remotion renders the reel.
+     * B-roll is only searched again when a scene's brollQuery changed, so an approval re-render keeps
+     * the clips the reviewer saw. A b-roll failure renders without footage and records why; it never
+     * invents a credit.
+     */
+    private void renderReel(AssetEntity asset, String citation, boolean draft) throws Exception {
+        JsonNode content = objectMapper.readTree(asset.getContent());
+        if (!content.isObject() || !content.has("scenes")) return;
+        List<Map<String, Object>> scenes = objectMapper.convertValue(content.get("scenes"), new TypeReference<List<Map<String, Object>>>() {});
+
+        Map<String, Object> audio = mlServiceClient.reelAudio(asset.getId(), scenes, asset.getLanguage());
+        Map<Integer, Map<String, Object>> audioByN = byScene(audio != null ? audio.get("scenes") : null);
+        for (Map<String, Object> s : scenes) {
+            Map<String, Object> a = audioByN.get(sceneNumber(s));
+            if (a == null) throw new IllegalStateException("No voiceover returned for scene " + s.get("n"));
+            s.put("audioSrc", a.get("mp3Path"));
+            s.put("durationMs", a.get("durationMs"));
+            s.put("words", a.get("words"));
+            s.put("timingApproximate", a.get("timingApproximate"));
+        }
+
+        boolean brollStale = scenes.stream()
+                .anyMatch(s -> !Objects.equals(s.get("brollQuery"), s.get("brollFor")));
+        if (brollStale) {
+            List<Map<String, Object>> req = new ArrayList<>();
+            for (Map<String, Object> s : scenes) {
+                double minSeconds = ((Number) s.get("durationMs")).doubleValue() / 1000.0;
+                req.add(Map.of("n", sceneNumber(s), "brollQuery", Objects.toString(s.get("brollQuery"), ""), "minSeconds", minSeconds));
+            }
+            Map<Integer, Map<String, Object>> brollByN;
+            String failure = null;
+            try {
+                Map<String, Object> broll = mlServiceClient.reelBroll(asset.getId(), asset.getPaperId(), req);
+                brollByN = byScene(broll != null ? broll.get("results") : null);
+            } catch (Exception e) {
+                log.error("B-roll lookup failed for {}: {}", asset.getId(), e.getMessage());
+                brollByN = Map.of();
+                failure = "ERROR:" + e.getMessage();
+            }
+            for (Map<String, Object> s : scenes) {
+                BROLL_FIELDS.forEach(s::remove);
+                Map<String, Object> b = brollByN.get(sceneNumber(s));
+                if (b != null) {
+                    for (String f : BROLL_FIELDS) {
+                        if (b.get(f) != null) s.put(f, b.get(f));
+                    }
+                } else {
+                    s.put("reason", failure != null ? failure : "ERROR:no b-roll result returned");
+                }
+                s.put("brollFor", s.get("brollQuery"));
+            }
+        }
+
+        // Scene start/end in the rendered video, using Remotion's frame maths (render-service sceneFrames)
+        double t = 0;
+        for (Map<String, Object> s : scenes) {
+            s.remove("brollSrc");
+            double ms = ((Number) s.get("durationMs")).doubleValue();
+            double seconds = Math.ceil((ms + 200) / 1000.0 * 30) / 30.0;
+            s.put("startSec", t);
+            t += seconds;
+            s.put("endSec", t);
+        }
+
+        Map<String, Object> res = renderServiceClient.renderReel(asset.getPaperId(), scenes, citation, draft);
+        if (res != null && res.containsKey("path")) {
+            asset.setRenderPaths(objectMapper.writeValueAsString(List.of(res.get("path"))));
+        }
+        ((ObjectNode) content).set("scenes", objectMapper.valueToTree(scenes));
+        asset.setContent(objectMapper.writeValueAsString(content));
+    }
+
+    private static int sceneNumber(Map<String, Object> scene) {
+        return scene.get("n") instanceof Number num ? num.intValue() : -1;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<Integer, Map<String, Object>> byScene(Object list) {
+        Map<Integer, Map<String, Object>> out = new HashMap<>();
+        if (list instanceof List<?> items) {
+            for (Object o : items) {
+                if (o instanceof Map<?, ?> m) out.put(sceneNumber((Map<String, Object>) m), (Map<String, Object>) m);
+            }
+        }
+        return out;
     }
 }

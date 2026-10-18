@@ -59,6 +59,10 @@ public class ExportController {
     @org.springframework.beans.factory.annotation.Value("${app.credits-file:}")
     private String creditsFile;
 
+    /** Credit line for the reel's background music. The bundled track's source has not been verified, so say so. */
+    @org.springframework.beans.factory.annotation.Value("${app.music-credit:source not verified; confirm the track and its licence before publishing}")
+    private String musicCredit;
+
     public ExportController(
             PaperRepository paperRepository,
             AssetRepository assetRepository,
@@ -223,10 +227,8 @@ public class ExportController {
                 sourcesSb.append("- **Inter** (Regular, Medium, SemiBold) – SIL Open Font License 1.1\n");
                 sourcesSb.append("- **Caveat** (Medium) – SIL Open Font License 1.1\n\n");
                 sourcesSb.append("### Audio & Music\n");
-                sourcesSb.append("- **Track**: Calm Ambient (ID: 111899)\n");
-                sourcesSb.append("- **Artist**: Lesfm / Pixabay\n");
-                sourcesSb.append("- **Source**: [Pixabay Music](https://pixabay.com/music/ambient-calm-ambient-111899/)\n");
-                sourcesSb.append("- **License**: Pixabay Content License (Free for commercial and non-commercial use)\n\n");
+                sourcesSb.append("- Voiceover: Microsoft edge-tts, en-IN-NeerjaNeural\n");
+                sourcesSb.append("- Music: ").append(musicCredit).append("\n\n");
                 sourcesSb.append("### Video Footage\n");
                 Optional<AssetEntity> reelOpt = assets.stream().filter(a -> a.getType().name().equals("REEL")).findFirst();
                 Set<String> reelClipsUsed = new LinkedHashSet<>();
@@ -260,7 +262,7 @@ public class ExportController {
                         sourcesSb.append("- ").append(clip).append("\n");
                     }
                 } else {
-                    sourcesSb.append("- Motion video footage: Steer procedural motion background (cream #FBF8F3 / blush #E6CBBD / maroon #3D141A).\n");
+                    sourcesSb.append("- No stock footage: the reel uses the Steer procedural brand background.\n");
                 }
                 addStringToZip(zos, sourcesSb.toString(), "sources.md");
 
@@ -391,11 +393,8 @@ public class ExportController {
             StringBuilder sb = new StringBuilder();
             sb.append("# Credits & Attributions\n\n");
             sb.append("## Audio & Music\n");
-            sb.append("- **Track**: Calm Ambient (ID: 111899)\n");
-            sb.append("- **Artist**: Lesfm / Pixabay\n");
-            sb.append("- **Source**: [Pixabay Music](https://pixabay.com/music/ambient-calm-ambient-111899/)\n");
-            sb.append("- **File**: `render-service/assets/music/calm-1.mp3`\n");
-            sb.append("- **License**: Pixabay Content License (Free for commercial and non-commercial use, no attribution required)\n\n");
+            sb.append("- Voiceover: Microsoft edge-tts, en-IN-NeerjaNeural\n");
+            sb.append("- Music (`render-service/assets/music/calm-1.mp3`): ").append(musicCredit).append("\n\n");
             sb.append("## Typography (Google Fonts)\n");
             sb.append("- **Instrument Serif** (Regular & Italic): Designed by Rodrigo Fuenzalida, Jordan Wilson (SIL Open Font License 1.1)\n");
             sb.append("- **Inter** (400 Regular, 500 Medium, 600 SemiBold): Designed by Rasmus Andersson (SIL Open Font License 1.1)\n");
@@ -406,7 +405,7 @@ public class ExportController {
                     sb.append("- ").append(clip).append("\n");
                 }
             } else {
-                sb.append("- No external video clips currently in use across exported reels. SteerProof renders procedural motion backgrounds using Steer brand palettes (`#FBF8F3` cream, `#E6CBBD` blush, `#3D141A` maroon).\n");
+                sb.append("- No stock clips in exported reels yet; reels without b-roll use the Steer procedural brand background.\n");
             }
             sb.append("\n");
 

@@ -233,6 +233,7 @@ class ReelBrollRequest(BaseModel):
     paperId: Optional[str] = None
     scenes: list[ReelBrollSceneInput]
     apiKey: Optional[str] = None
+    usedIds: Optional[list[str]] = None
 
 class ReelBrollResult(BaseModel):
     n: int
@@ -248,6 +249,9 @@ class ReelBrollResult(BaseModel):
     sizeUsed: Optional[str] = None
     duration: Optional[float] = None
     hitId: Optional[str] = None
+    searchedQuery: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
     pexelsId: Optional[str] = None
     pexelsUrl: Optional[str] = None
     photographer: Optional[str] = None
