@@ -39,6 +39,9 @@ app.add_middleware(
 
 llm_client = LLMClient(settings)
 
+# Never log the key itself, only whether it was found.
+logger.info(f"pixabay key loaded: {'yes' if settings.pixabay_api_key else 'no'}")
+
 @app.get("/health")
 def health():
     return {"status": "ok", "gemini_model": settings.gemini_model}

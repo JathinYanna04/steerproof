@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     llm_max_rpm: int = 8
     groq_api_key: str = ""
     pexels_api_key: str = ""
+    pixabay_api_key: str = ""
     tts_voice_en: str = "en-IN-NeerjaNeural"
     tts_voice_hi: str = "hi-IN-SwaraNeural"
     storage_dir: Path = Path("../storage")
