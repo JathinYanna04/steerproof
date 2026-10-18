@@ -132,6 +132,11 @@ def verify_endpoint(req: VerifyRequest):
 
             if entailment == "UNSUPPORTED":
                 risk = "RED"
+            elif entailment == "OVERCLAIM" and risk == "GREEN":
+                risk = "AMBER"
+
+            if not numbers_ok and risk == "GREEN":
+                risk = "AMBER"
 
             final_details.append(ClaimVerifyDetail(
                 index=idx,

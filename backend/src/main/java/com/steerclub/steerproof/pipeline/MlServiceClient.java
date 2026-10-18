@@ -24,6 +24,7 @@ public class MlServiceClient {
 
         this.restClient = restClientBuilder
                 .baseUrl(mlServiceUrl)
+                .defaultHeader("Accept", "application/json")
                 .requestFactory(requestFactory)
                 .build();
     }

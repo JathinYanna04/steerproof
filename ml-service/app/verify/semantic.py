@@ -64,10 +64,11 @@ def run_semantic_verification(
             total_calls += 1
 
         for item in verify_res.items:
-            # Rule: If entailment is UNSUPPORTED, risk must be RED
             risk = item.risk
             if item.entailment == "UNSUPPORTED":
                 risk = "RED"
+            elif item.entailment == "OVERCLAIM" and risk == "GREEN":
+                risk = "AMBER"
             results[item.index] = VerifyItem(
                 index=item.index,
                 entailment=item.entailment,

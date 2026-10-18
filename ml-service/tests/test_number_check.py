@@ -28,3 +28,35 @@ def test_written_numbers_skipped():
     ok, missing = check_numbers(claim, None, quote)
     assert ok is True
     assert missing == []
+
+def test_range_normalization_to_vs_dash():
+    # "20 to 40%" vs "20-40%"
+    quote = "Patients expected to lose 20-40% of their starting body weight."
+    claim = "Patients expected a 20 to 40% weight loss."
+    ok, missing = check_numbers(claim, None, quote)
+    assert ok is True
+    assert missing == []
+
+def test_range_normalization_dashes_spaces():
+    # "20–40%" vs "20 — 40 %"
+    quote = "Expected loss was 20–40%."
+    claim = "Expected loss was 20 — 40 %."
+    ok, missing = check_numbers(claim, None, quote)
+    assert ok is True
+    assert missing == []
+
+def test_percent_vs_word_percent():
+    # "%" vs "percent"
+    quote = "A reduction of 15 percent was recorded."
+    claim = "A 15% reduction was seen."
+    ok, missing = check_numbers(claim, None, quote)
+    assert ok is True
+    assert missing == []
+
+def test_word_half_does_not_satisfy_50_percent():
+    # "half" -> "50%" must fail
+    quote = "More than half of the lost weight was regained within two years."
+    claim = "Patients regained 50% of the lost weight within two years."
+    ok, missing = check_numbers(claim, None, quote)
+    assert ok is False
+    assert "50%" in missing

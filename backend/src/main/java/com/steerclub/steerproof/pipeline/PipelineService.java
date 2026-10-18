@@ -162,19 +162,60 @@ public class PipelineService {
                 List<PassageEntity> passages = passageRepository.findByPaperIdOrderByOrdAsc(paperId);
                 List<MlServiceClient.PassageDto> passageDtos = passages.stream().map(this::toPassageDto).toList();
 
-                List<MlServiceClient.VerifyClaimDto> verifyInput = extractedClaims.stream().map(c ->
-                        new MlServiceClient.VerifyClaimDto(
-                                c.passageId(),
-                                c.quote(),
-                                c.scientificClaim(),
-                                c.consumerDraft(),
-                                c.numbers(),
-                                c.studyDesign(),
-                                c.population(),
-                                c.findingClass(),
-                                c.limitations()
-                        )
-                ).toList();
+                List<MlServiceClient.VerifyClaimDto> verifyInput;
+                if (!extractedClaims.isEmpty()) {
+                    verifyInput = extractedClaims.stream().map(c ->
+                            new MlServiceClient.VerifyClaimDto(
+                                    c.passageId(),
+                                    c.quote(),
+                                    c.scientificClaim(),
+                                    c.consumerDraft(),
+                                    c.numbers(),
+                                    c.studyDesign(),
+                                    c.population(),
+                                    c.findingClass(),
+                                    c.limitations()
+                            )
+                    ).toList();
+                } else {
+                    List<ClaimEntity> existingClaims = claimRepository.findByPaperIdOrderByIdAsc(paperId);
+                    if (!existingClaims.isEmpty()) {
+                        verifyInput = existingClaims.stream().map(c ->
+                            new MlServiceClient.VerifyClaimDto(
+                                    c.getPassageId(),
+                                    c.getQuote(),
+                                    c.getScientificClaim(),
+                                    c.getConsumerDraft(),
+                                    parseNumbers(c.getNumbers()),
+                                    c.getStudyDesign(),
+                                    c.getPopulation(),
+                                    c.getFindingClass() != null ? c.getFindingClass().name() : null,
+                                    parseLimitations(c.getLimitations())
+                            )
+                        ).toList();
+                    } else {
+                        MlServiceClient.PaperMetaDto metaDto = new MlServiceClient.PaperMetaDto(
+                                paper.getTitle(), paper.getAuthors(), paper.getYear(), paper.getJournal(), paper.getDoi()
+                        );
+                        MlServiceClient.ExtractResponse extractRes = mlServiceClient.extract(
+                                paperId, metaDto, passageDtos, paper.getTheme()
+                        );
+                        extractedClaims = extractRes.claims();
+                        verifyInput = extractedClaims.stream().map(c ->
+                                new MlServiceClient.VerifyClaimDto(
+                                        c.passageId(),
+                                        c.quote(),
+                                        c.scientificClaim(),
+                                        c.consumerDraft(),
+                                        c.numbers(),
+                                        c.studyDesign(),
+                                        c.population(),
+                                        c.findingClass(),
+                                        c.limitations()
+                                )
+                        ).toList();
+                    }
+                }
 
                 MlServiceClient.VerifyResponse verifyRes = mlServiceClient.verify(paperId, verifyInput, passageDtos);
 
@@ -183,19 +224,24 @@ public class PipelineService {
                     detailMap.put(d.index(), d);
                 }
 
-                // Delete previous claims if any (for retry)
-                List<ClaimEntity> oldClaims = claimRepository.findByPaperIdOrderByIdAsc(paperId);
-                if (!oldClaims.isEmpty()) {
-                    claimRepository.deleteAll(oldClaims);
+                // Load existing claims to prevent duplicates and preserve reviewed status
+                Map<String, ClaimEntity> existingByClaimId = new HashMap<>();
+                for (ClaimEntity ec : claimRepository.findByPaperIdOrderByIdAsc(paperId)) {
+                    existingByClaimId.put(ec.getId(), ec);
                 }
 
                 List<ClaimEntity> newClaims = new ArrayList<>();
+                Set<String> processedIds = new HashSet<>();
+
                 for (int i = 0; i < extractedClaims.size(); i++) {
                     MlServiceClient.ExtractedClaimDto raw = extractedClaims.get(i);
                     MlServiceClient.VerifyItemDetailDto detail = detailMap.get(i);
 
-                    ClaimEntity claim = new ClaimEntity();
-                    claim.setId(idGenerator.claimId(paperId, i + 1));
+                    String claimId = idGenerator.claimId(paperId, i + 1);
+                    processedIds.add(claimId);
+                    ClaimEntity claim = existingByClaimId.getOrDefault(claimId, new ClaimEntity());
+
+                    claim.setId(claimId);
                     claim.setPaperId(paperId);
                     claim.setPassageId(detail != null && detail.passageId() != null ? detail.passageId() : raw.passageId());
                     claim.setQuote(raw.quote());
@@ -224,11 +270,27 @@ public class PipelineService {
                             }
                         } catch (Exception ignored) {}
 
+                        Risk finalRisk = Risk.GREEN;
                         try {
                             if (detail.risk() != null) {
-                                claim.setRisk(Risk.valueOf(detail.risk().toUpperCase()));
+                                finalRisk = Risk.valueOf(detail.risk().toUpperCase());
                             }
                         } catch (Exception ignored) {}
+
+                        // Risk Floor:
+                        // 1. UNSUPPORTED -> RED
+                        // 2. OVERCLAIM -> at least AMBER
+                        // 3. numbersOk=false -> at least AMBER
+                        if (claim.getEntailment() == Entailment.UNSUPPORTED) {
+                            finalRisk = Risk.RED;
+                        } else if (claim.getEntailment() == Entailment.OVERCLAIM && finalRisk == Risk.GREEN) {
+                            finalRisk = Risk.AMBER;
+                        }
+                        if (Boolean.FALSE.equals(claim.getNumbersOk()) && finalRisk == Risk.GREEN) {
+                            finalRisk = Risk.AMBER;
+                        }
+
+                        claim.setRisk(finalRisk);
                         claim.setRiskReason(detail.riskReason());
 
                         try {
@@ -238,17 +300,30 @@ public class PipelineService {
                         } catch (Exception ignored) {}
                         claim.setPopulationReason(detail.populationReason());
 
-                        // Rule: quoteScore < 90 -> NEEDS_EVIDENCE
-                        if (detail.quoteScore() < 90) {
-                            claim.setDoctorStatus(DoctorStatus.NEEDS_EVIDENCE);
-                        } else {
-                            claim.setDoctorStatus(DoctorStatus.PENDING);
+                        // Preserve reviewed doctor_status!
+                        boolean alreadyReviewed = claim.getDoctorStatus() == DoctorStatus.APPROVED
+                                || claim.getDoctorStatus() == DoctorStatus.EDITED
+                                || claim.getDoctorStatus() == DoctorStatus.REJECTED;
+
+                        if (!alreadyReviewed) {
+                            if (detail.quoteScore() < 90) {
+                                claim.setDoctorStatus(DoctorStatus.NEEDS_EVIDENCE);
+                            } else {
+                                claim.setDoctorStatus(DoctorStatus.PENDING);
+                            }
                         }
-                    } else {
+                    } else if (claim.getDoctorStatus() == null) {
                         claim.setDoctorStatus(DoctorStatus.PENDING);
                     }
 
                     newClaims.add(claim);
+                }
+
+                // Delete any orphaned claims beyond the new count
+                for (ClaimEntity oldClaim : existingByClaimId.values()) {
+                    if (!processedIds.contains(oldClaim.getId())) {
+                        claimRepository.delete(oldClaim);
+                    }
                 }
 
                 claimRepository.saveAll(newClaims);
@@ -302,5 +377,23 @@ public class PipelineService {
                 p.getText(),
                 p.getOrd()
         );
+    }
+
+    private List<MlServiceClient.NumberRefDto> parseNumbers(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<MlServiceClient.NumberRefDto>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    private List<String> parseLimitations(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 }

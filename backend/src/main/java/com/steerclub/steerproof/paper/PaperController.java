@@ -161,7 +161,7 @@ public class PaperController {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + id));
 
         if (paper.getStatus() != PaperStatus.FAILED) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "NOT_FAILED", "Paper is not in FAILED state");
+            throw new ApiException(HttpStatus.CONFLICT, "NOT_FAILED", "Paper is not in FAILED state");
         }
 
         String failedStage = paper.getFailedStage();

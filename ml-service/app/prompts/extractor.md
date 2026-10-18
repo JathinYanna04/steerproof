@@ -19,7 +19,7 @@ RULES (all mandatory)
 3. "scientificClaim" restates the quote precisely in plain English. Keep every qualifier:
    population, comparison group, timeframe, "exploratory", "post hoc", "associated with",
    "in this trial", "on average". Never turn association into causation.
-4. Every number in scientificClaim must appear in the quote. Keep units and denominators.
+4. Every number in scientificClaim must appear in the quote. Keep units and denominators. Never convert words to digits or add any number not written in the quote. Copy number formats exactly.
 5. "findingClass":
    PRIMARY = prespecified primary outcome; SECONDARY = prespecified secondary outcome;
    EXPLORATORY = post hoc, extension, subgroup, or described as exploratory;

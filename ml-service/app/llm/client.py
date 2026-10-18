@@ -4,7 +4,7 @@ from typing import TypeVar, Type, Tuple, Optional
 from pydantic import BaseModel, ValidationError
 from google import genai
 from google.genai import types
-from google.genai.errors import APIError
+from google.genai.errors import APIError, ServerError
 
 from app.llm.cache import DiskCache
 from app.llm.ratelimit import TokenBucket
@@ -37,10 +37,11 @@ class LLMClient:
             except ValidationError:
                 pass # corrupted cache, re-fetch
 
-        backoff_delays = [5.0, 15.0, 45.0]
+        backoff_delays = [3.0, 8.0, 20.0, 40.0]
+        max_attempts = 4
         last_error = None
 
-        for attempt in range(2):
+        for attempt in range(max_attempts):
             self.limiter.acquire()
             try:
                 resp = self.client.models.generate_content(
@@ -56,21 +57,33 @@ class LLMClient:
                 obj = schema.model_validate_json(text)
                 self.cache.set(prompt_hash, text)
                 return obj, False
-            except APIError as e:
+            except (APIError, ServerError) as e:
                 last_error = e
-                # Check for 429
-                if getattr(e, "code", None) == 429 or "RESOURCE_EXHAUSTED" in str(e):
+                err_str = str(e)
+                code = getattr(e, "code", None)
+                is_transient = (
+                    code in (429, 503) or
+                    "RESOURCE_EXHAUSTED" in err_str or
+                    "UNAVAILABLE" in err_str or
+                    "high demand" in err_str
+                )
+                if is_transient and attempt < max_attempts - 1:
                     delay = backoff_delays[min(attempt, len(backoff_delays) - 1)]
                     time.sleep(delay)
                 else:
                     raise
             except ValidationError as e:
                 last_error = e
-                if attempt == 1:
+                if attempt >= max_attempts - 1:
                     raise
+                time.sleep(1.0)
             except Exception as e:
                 last_error = e
-                if attempt == 1:
+                if attempt < max_attempts - 1:
+                    time.sleep(2.0)
+                else:
                     raise
 
-        raise RuntimeError(f"LLM structured output failed after retries: {last_error}")
+        if last_error:
+            raise last_error
+        raise RuntimeError(f"LLM structured output failed after retries")
