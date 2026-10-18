@@ -12,7 +12,7 @@ from app.write.validator import validate_writer_result
 logger = logging.getLogger(__name__)
 
 # Bump whenever writer.md or the writer schema changes; it is part of the LLM cache key.
-WRITER_PROMPT_VERSION = "writer-v3-2026-10-18"
+WRITER_PROMPT_VERSION = "writer-v5-2026-10-18"
 
 def load_voice_spec() -> str:
     path = Path(__file__).resolve().parent.parent / "config" / "voice_spec.yaml"

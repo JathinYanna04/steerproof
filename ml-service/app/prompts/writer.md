@@ -25,7 +25,9 @@ HARD RULES
                     GOOD: "That second cup of chai at 4pm, every single day."
                     GOOD: "Dinner with family, and someone always passes you one more roti."
    "brand"        → Steer lines from the voice spec (sign-off, "doctor-led", CTA). claimIds: [].
-                    Brand lines are not findings: never present them as something a study showed.
+                    Brand lines are not findings: never present them as something a study showed,
+                    and never put one inside a "claim" block ("It's biology, not willpower" as a
+                    claim headline is wrong; make it its own "brand" block or leave it out).
 2. QUALIFIERS: every block linked to a claim whose findingClass is EXPLORATORY must carry a
    qualifier, in EVERY format: carousel headline and body, static headline and support, reel
    onScreen AND voiceover, and caption paragraphs. Allowed qualifiers: "in this trial",
@@ -68,7 +70,11 @@ carousel: 5–7 slides
   slide types: "hook" (first), "point", "illustration", "source", "closing" (last)
   each slide: { n, type, headline (≤ 48 chars), body (≤ 160 chars, may be empty),
                 kind, claimIds, background: "cream"|"maroon" }
-  - hook names the real worry as a question
+  - hook names the real worry as a question. A question that presupposes a finding
+    ("Why does weight come back?" presupposes that it does) is kind "claim" and lists the
+    claimIds it rests on. Otherwise the hook is an everyday moment or feeling (kind
+    "illustration") with no biological, medical or causal premise, e.g.
+    "Another Monday, another diet plan?"
   - one idea per slide
   - at most one maroon slide (emotional beat)
   - the "source" slide is kind "brand" and follows rule 4 (no names, years or journals)
@@ -80,7 +86,7 @@ reel: 5 scenes, total 25–40 seconds of voiceover (TOTAL BUDGET: ≤ 85 words a
               "roti tawa", "vegetable market", "office desk laptop", "morning park path",
               "kitchen counter", "wall clock". Never people, bodies, faces, gyms, scales,
               pills, injections, hospitals or medical equipment.
-  scene 1 hook, scene 5 closing with brand line.
+  scene 1 hook (same kind rule as the carousel hook), scene 5 closing with brand line.
 caption: { paragraphs: [{ text, kind, claimIds }] (3–5 short paragraphs),
            hashtags: 8–12 lowercase, India + metabolic health + Steer; no drug names }
 

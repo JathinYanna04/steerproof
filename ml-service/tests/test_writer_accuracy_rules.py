@@ -143,3 +143,9 @@ def test_qualifier_phrases_with_descriptors():
     assert has_qualifier("In this extension study, blood pressure rose.")
     assert not has_qualifier("Trial data showed nearly half kept it off.")
     assert not is_factual("What one *trial* showed after stopping.")
+
+
+def test_brand_phrase_detected_for_claim_blocks():
+    from app.write.copy_rules import brand_phrase
+    assert brand_phrase("It's *biology*, not willpower.") == "not willpower"
+    assert brand_phrase("Across 29 long-term studies, weight often returned.") is None

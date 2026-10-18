@@ -52,6 +52,10 @@ rules:
       - effortless
       - guarantee
       - guaranteed
+      - save lives
+      - saves lives
+      - life-saving
+      - lifesaving
 
   FEAR_SHAME:
     severity: BLOCKING

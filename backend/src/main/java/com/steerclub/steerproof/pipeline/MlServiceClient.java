@@ -20,7 +20,8 @@ public class MlServiceClient {
     ) {
         org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(java.time.Duration.ofSeconds(30));
-        requestFactory.setReadTimeout(java.time.Duration.ofSeconds(300));
+        // The writer plus its one validation retry can take over 5 minutes on the free tier
+        requestFactory.setReadTimeout(java.time.Duration.ofSeconds(600));
 
         this.restClient = restClientBuilder
                 .baseUrl(mlServiceUrl)

@@ -1,6 +1,6 @@
 # WS4 b-roll evidence (Pixabay)
 
-Generated 2026-10-18T15:53:45+00:00 by `python -m app.reel.broll_evidence`. When a key is loaded, every id, tag, size and credit below is copied from the live API response; nothing is filled in by hand.
+Generated 2026-10-18T16:16:09+00:00 by `python -m app.reel.broll_evidence`. When a key is loaded, every id, tag, size and credit below is copied from the live API response; nothing is filled in by hand.
 
 - pixabay key loaded: yes
 
@@ -25,7 +25,7 @@ Generated 2026-10-18T15:53:45+00:00 by `python -m app.reel.broll_evidence`. When
 | Scene | Query | Searched | Chosen id | Tags | Size | Credit line or null reason |
 |---|---|---|---|---|---|---|
 | 1 | steaming chai cup desk | steaming chai cup desk | 267 | pot, cooking, steam, steaming, hot, food, kettle, preparation, kitchen, sepia, cook, heat, warm | medium (1280×720) | Video by Life-Of-Vids on Pixabay — https://pixabay.com/videos/id-267/ |
-| 2 | stethoscope medical clipboard | stethoscope medical clipboard | 49813 | doctor, writing, appointment, stethoscope, health, prescription | medium (1280×720) | Video by Hassas_Arts on Pixabay — https://pixabay.com/videos/id-49813/ |
-| 3 | calendar turning pages | calendar turning pages | 143683 | novel, flip, page, flipping, chapter, education, book, turning, letters, writing, dictionary, tale, medicine, inspiration, storytelling, stack, literature, learning, material, human hand, paper, reading, text | medium (2560×1440) | Video by AttilaPergel on Pixabay — https://pixabay.com/videos/id-143683/ |
+| 2 | stethoscope medical clipboard |  |  |  |  | null: ALL_DENYLISTED |
+| 3 | calendar turning pages | calendar turning pages | 3624 | playground, carousel, turning, childhood, fun, play, outdoors, youth, teenagers, together, teamwork | medium (1280×720) | Video by Coverr-Free-Footage on Pixabay — https://pixabay.com/videos/id-3624/ |
 | 4 | fresh cooked rotis bowl | fresh cooked rotis bowl | 146013 | tangerines, fruit, fresh, bowl | medium (1280×720) | Video by u_849jclgk06 on Pixabay — https://pixabay.com/videos/id-146013/ |
 | 5 | bright clean clinic room | bright clean clinic room | 7954 | window, clean, to wipe, black, to clean | medium (1280×720) | Video by MilanWulf on Pixabay — https://pixabay.com/videos/id-7954/ |

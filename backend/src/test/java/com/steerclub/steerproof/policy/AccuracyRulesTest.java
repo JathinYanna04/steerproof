@@ -360,4 +360,28 @@ class AccuracyRulesTest {
         List<PolicyChecker.ViolationResult> v = check(AssetType.CAROUSEL, car, claims());
         assertEquals(List.of("slide:3"), v.stream().filter(x -> "ILLUSTRATION_STATES_FACT".equals(x.rule())).map(PolicyChecker.ViolationResult::location).toList());
     }
+
+    // ---------- brand lines are not findings ----------
+
+    @Test
+    void brandLineInsideClaimBlockIsBlocking() {
+        Map<String, Object> sta = new LinkedHashMap<>(Map.of("headline", "It's *biology*, not willpower.",
+                "support", "Across 29 long-term studies, weight often returned.", "kind", "claim", "claimIds", List.of("C-2")));
+        assertTrue(has(check(AssetType.STATIC, sta, claims()), "BRAND_LINE_AS_CLAIM"));
+
+        Map<String, Object> brandSta = new LinkedHashMap<>(Map.of("headline", "It's *biology*, not willpower.",
+                "support", "Clinical weight loss, doctor-led.", "kind", "brand", "claimIds", List.of()));
+        assertFalse(has(check(AssetType.STATIC, brandSta, claims()), "BRAND_LINE_AS_CLAIM"));
+    }
+
+    @Test
+    void savesLivesIsHype() {
+        Map<String, Object> cap = new LinkedHashMap<>();
+        cap.put("paragraphs", new ArrayList<>(List.of(
+                new LinkedHashMap<>(Map.of("text", "Across 29 long-term studies, weight often returned. Small changes save lives.",
+                        "kind", "claim", "claimIds", List.of("C-2"))),
+                new LinkedHashMap<>(Map.of("text", "steer · steerclub.com", "kind", "brand", "claimIds", List.of())))));
+        cap.put("hashtags", List.of("#a", "#b", "#c", "#d", "#e", "#f", "#g", "#h"));
+        assertTrue(has(check(AssetType.CAPTION, cap, claims()), "HYPE"));
+    }
 }

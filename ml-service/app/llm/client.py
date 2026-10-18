@@ -66,7 +66,9 @@ class LLMClient:
                 last_error = e
                 err_str = str(e)
                 code = getattr(e, "code", None)
-                is_transient = (
+                # A per-day quota won't recover within the backoff window; fail fast
+                daily_quota = "PerDay" in err_str
+                is_transient = not daily_quota and (
                     code in (429, 503) or
                     "RESOURCE_EXHAUSTED" in err_str or
                     "UNAVAILABLE" in err_str or

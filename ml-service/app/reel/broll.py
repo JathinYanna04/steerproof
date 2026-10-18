@@ -39,6 +39,10 @@ PIXABAY_TAG_DENYLIST = {
     # "hand"-tagged hits show people typing. Clinical and body-part tags are out.
     "doctor", "nurse", "patient", "medical", "medicine", "clinic", "stethoscope",
     "prescription", "human", "hand", "hands", "finger", "fingers", "skin", "face",
+    # People nouns Pixabay uses as tags (hit 3624 was tagged "teenagers, youth").
+    "teenager", "teen", "youth", "child", "kid", "baby", "adult", "student", "crowd",
+    "family", "couple", "friend", "worker", "businessman", "businesswoman", "lady", "guy",
+    "portrait", "selfie", "athlete", "runner", "dancer",
 }
 
 _PLURAL_FORMS = {
@@ -47,6 +51,10 @@ _PLURAL_FORMS = {
     "bikinis": "bikini", "scales": "scale", "diets": "diet", "pill": "pills",
     "injections": "injection", "hospitals": "hospital", "surgeries": "surgery",
     "bellies": "belly", "weights": "weight", "gyms": "gym",
+    "teenagers": "teenager", "teens": "teen", "children": "child", "kids": "kid", "babies": "baby",
+    "adults": "adult", "students": "student", "crowds": "crowd", "families": "family",
+    "couples": "couple", "friends": "friend", "workers": "worker", "businessmen": "businessman",
+    "ladies": "lady", "guys": "guy", "athletes": "athlete", "runners": "runner", "dancers": "dancer",
 }
 
 # Concrete nouns preferred when simplifying a query for the one retry (4.4).

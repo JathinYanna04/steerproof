@@ -92,3 +92,13 @@ def qualifier_errors(primary: str, secondary: str, where: str, primary_name: str
             errors.append(f"{where}: {primary_name} '{primary}' states an EXPLORATORY finding without a qualifier; "
                           f"add one (e.g. 'In this trial, ...') or make it a non-factual heading.")
     return errors
+
+
+# Brand lines from the voice spec; they are not findings and never sit inside a claim block
+# (mirrors PolicyChecker.BRAND_PHRASES in the backend).
+BRAND_PHRASES = ["not willpower", "doctor-led", "stop googling", "ask a doctor", "ask a steer doctor", "steerclub.com"]
+
+
+def brand_phrase(text: str) -> str | None:
+    lower = text.replace("*", "").lower()
+    return next((b for b in BRAND_PHRASES if b in lower), None)

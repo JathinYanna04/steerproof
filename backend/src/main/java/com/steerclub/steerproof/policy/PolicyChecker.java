@@ -43,7 +43,8 @@ public class PolicyChecker {
     private List<String> hypeWords = List.of(
             "miracle", "magic", "secret", "hack", "cure", "cures",
             "melt fat", "detox", "burn fat fast", "revolutionary",
-            "breakthrough", "instantly", "effortless", "guarantee", "guaranteed"
+            "breakthrough", "instantly", "effortless", "guarantee", "guaranteed",
+            "save lives", "saves lives", "life-saving", "lifesaving"
     );
 
     private List<String> fearShameWords = List.of(
@@ -575,6 +576,10 @@ public class PolicyChecker {
     // QUOTE_NOT_CLAIM_COPY, ILLUSTRATION_STATES_FACT. All BLOCKING.
     // ---------------------------------------------------------------------------------------------
 
+    /** Brand lines from docs/BRAND.md / voice_spec.yaml (lower case, without markup). */
+    static final List<String> BRAND_PHRASES = List.of(
+            "not willpower", "doctor-led", "stop googling", "ask a doctor", "ask a steer doctor", "steerclub.com");
+
     /** A copy block: its location, kind, linked claims, a short primary line and a longer secondary line. */
     private record Block(String loc, String kind, List<String> claimIds, String primary, String primaryName,
                          String secondary, String secondaryName, JsonNode node, boolean isSource) {}
@@ -677,6 +682,19 @@ public class PolicyChecker {
                     violations.add(new ViolationResult("CITATION_TEXT_IN_COPY", Severity.BLOCKING, b.loc(),
                             "Citation-like text in copy ('" + m.group() + "'); citations are added from the paper metadata", first));
                     break;
+                }
+            }
+
+            // BRAND_LINE_AS_CLAIM: voice-spec brand lines are not findings, so they never sit in a cited claim block.
+            if (isClaim) {
+                for (String text : List.of(b.primary(), b.secondary())) {
+                    String lower = text.replace("*", "").toLowerCase(Locale.ROOT);
+                    String hit = BRAND_PHRASES.stream().filter(lower::contains).findFirst().orElse(null);
+                    if (hit != null) {
+                        violations.add(new ViolationResult("BRAND_LINE_AS_CLAIM", Severity.BLOCKING, b.loc(),
+                                "Brand line '" + hit + "' in a cited claim block; make it a separate kind=brand block", first));
+                        break;
+                    }
                 }
             }
 

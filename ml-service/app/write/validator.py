@@ -2,7 +2,7 @@ import re
 from typing import List, Optional, Sequence, Tuple
 from app.schemas import WriterResult, ApprovedClaimInput
 from app.write.copy_rules import (
-    has_citation_text, illustration_fact_hint, qualifier_errors, has_qualifier, stat_value,
+    brand_phrase, has_citation_text, illustration_fact_hint, qualifier_errors, has_qualifier, stat_value,
 )
 
 PERCENT_OR_STAT_REGEX = re.compile(r'\d+(?:\.\d+)?\s*(?:%|\bpercent\b)|\b\d+\s*(?:kg|kilos|pounds|lbs)\b', re.IGNORECASE)
@@ -129,6 +129,18 @@ def _content_errors(result: WriterResult, linked_exploratory, approved_text: dic
         if hint:
             errors.append(f"{where}: illustration uses '{hint}', which reads as a biological/medical/causal fact. "
                           f"Describe only an everyday moment, feeling or routine.")
+
+    # Brand lines never inside a claim block.
+    claim_blocks = [(f"Slide {s.n}", s.headline + " " + s.body) for s in result.carousel if s.kind == "claim"]
+    if result.static.kind == "claim":
+        claim_blocks.append(("Static", result.static.headline + " " + result.static.support))
+    claim_blocks += [(f"Scene {sc.n}", sc.onScreen + " " + sc.voiceover) for sc in result.reel if sc.kind == "claim"]
+    claim_blocks += [(f"Caption para {i + 1}", p.text) for i, p in enumerate(result.caption.paragraphs) if p.kind == "claim"]
+    for where, text in claim_blocks:
+        hit = brand_phrase(text)
+        if hit:
+            errors.append(f"{where}: kind 'claim' contains the brand line '{hit}'. Brand lines are kind 'brand' "
+                          f"and must be their own block.")
 
     # Qualifiers on every block linked to an EXPLORATORY claim, in every format.
     for s in result.carousel:
