@@ -34,6 +34,11 @@ PIXABAY_TAG_DENYLIST = {
     "people", "person", "body", "fitness", "gym", "woman", "man", "girl", "boy",
     "model", "beach", "bikini", "scale", "diet", "pills", "injection", "hospital",
     "surgery", "belly", "fat", "weight",
+    # Added after a live check: hit 49813 (tags "doctor, writing, appointment,
+    # stethoscope, ...") showed a patient's bare body on a hospital bed, and
+    # "hand"-tagged hits show people typing. Clinical and body-part tags are out.
+    "doctor", "nurse", "patient", "medical", "medicine", "clinic", "stethoscope",
+    "prescription", "human", "hand", "hands", "finger", "fingers", "skin", "face",
 }
 
 _PLURAL_FORMS = {
