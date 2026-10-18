@@ -538,7 +538,7 @@ export const Reel: React.FC<ReelProps> = ({ scenes, citation, draft, musicSrc })
   // Calculate sequence ranges
   let accumulatedFrames = 0;
   const sequences = scenes.map(s => {
-    const durationFrames = Math.ceil(((s.durationMs + 400) / 1000) * fps);
+    const durationFrames = Math.ceil(((s.durationMs + 200) / 1000) * fps);
     const startFrame = accumulatedFrames;
     accumulatedFrames += durationFrames;
     return {

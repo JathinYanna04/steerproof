@@ -442,7 +442,7 @@ public class PipelineService {
                 stageStart = Instant.now();
                 PipelineRunEntity run = new PipelineRunEntity(paperId, "RENDER", stageStart);
 
-                String citation = (paper.getAuthors() != null ? paper.getAuthors() : "Authors") + " (" + (paper.getYear() != null ? paper.getYear() : 2018) + ")";
+                String citation = com.steerclub.steerproof.common.CitationHelper.formatShortCitation(paper.getAuthors(), paper.getYear(), paper.getJournal());
 
                 // 1. Render Carousel
                 String carId = idGenerator.assetId(paperId, AssetType.CAROUSEL);
@@ -602,37 +602,74 @@ public class PipelineService {
 
     @Transactional
     public void resetPaper(String paperId) {
+        resetPaper(paperId, false);
+    }
+
+    public void resetPaper(String paperId, boolean keepClaims) {
         PaperEntity paper = paperRepository.findById(paperId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + paperId));
 
-        List<AssetEntity> assets = assetRepository.findByPaperIdOrderByIdAsc(paperId);
-        for (AssetEntity a : assets) {
-            policyViolationRepository.deleteByAssetId(a.getId());
-            assetClaimRepository.deleteByAssetId(a.getId());
-        }
-        assetRepository.deleteAll(assets);
-
-        claimRepository.deleteAll(claimRepository.findByPaperIdOrderByIdAsc(paperId));
-        humanEventRepository.deleteAll(humanEventRepository.findByPaperIdOrderByAtAsc(paperId));
-
-        List<PipelineRunEntity> runs = pipelineRunRepository.findByPaperIdOrderByStartedAtAsc(paperId);
-        for (PipelineRunEntity r : runs) {
-            if (!"PARSE".equalsIgnoreCase(r.getStage())) {
-                pipelineRunRepository.delete(r);
+        if (!keepClaims) {
+            List<AssetEntity> assets = assetRepository.findByPaperIdOrderByIdAsc(paperId);
+            for (AssetEntity a : assets) {
+                policyViolationRepository.deleteByAssetId(a.getId());
+                assetClaimRepository.deleteByAssetId(a.getId());
             }
+            assetRepository.deleteAll(assets);
+
+            claimRepository.deleteAll(claimRepository.findByPaperIdOrderByIdAsc(paperId));
+            humanEventRepository.deleteAll(humanEventRepository.findByPaperIdOrderByAtAsc(paperId));
+
+            List<PipelineRunEntity> runs = pipelineRunRepository.findByPaperIdOrderByStartedAtAsc(paperId);
+            for (PipelineRunEntity r : runs) {
+                if (!"PARSE".equalsIgnoreCase(r.getStage())) {
+                    pipelineRunRepository.delete(r);
+                }
+            }
+
+            List<PassageEntity> passages = passageRepository.findByPaperIdOrderByOrdAsc(paperId);
+            if (!passages.isEmpty()) {
+                paper.setStatus(PaperStatus.EXTRACTING);
+            } else {
+                paper.setStatus(PaperStatus.PARSING);
+            }
+        } else {
+            // Keep extracted claims, but reset all human reviews
+            List<ClaimEntity> claims = claimRepository.findByPaperIdOrderByIdAsc(paperId);
+            for (ClaimEntity c : claims) {
+                if (c.getDoctorStatus() != DoctorStatus.NEEDS_EVIDENCE) {
+                    c.setDoctorStatus(DoctorStatus.PENDING);
+                }
+                c.setDoctorName(null);
+                c.setDoctorNote(null);
+                c.setEditedCopy(null);
+                c.setReviewSeconds(0);
+                c.setReviewedAt(null);
+            }
+            claimRepository.saveAll(claims);
+
+            // Reset asset review fields
+            List<AssetEntity> assets = assetRepository.findByPaperIdOrderByIdAsc(paperId);
+            for (AssetEntity a : assets) {
+                if (a.getStatus() == AssetStatus.APPROVED) {
+                    a.setStatus(AssetStatus.RENDERED);
+                }
+                a.setApprovedBy(null);
+                a.setApprovedAt(null);
+            }
+            assetRepository.saveAll(assets);
+
+            // Delete human events
+            humanEventRepository.deleteAll(humanEventRepository.findByPaperIdOrderByAtAsc(paperId));
+
+            paper.setStatus(PaperStatus.AWAITING_CLAIM_REVIEW);
         }
 
-        List<PassageEntity> passages = passageRepository.findByPaperIdOrderByOrdAsc(paperId);
-        if (!passages.isEmpty()) {
-            paper.setStatus(PaperStatus.EXTRACTING);
-        } else {
-            paper.setStatus(PaperStatus.PARSING);
-        }
         paper.setFailedStage(null);
         paper.setError(null);
         paperRepository.save(paper);
 
-        auditService.log("system", "PAPER_RESET", "paper", paperId, Map.of(), Map.of("status", paper.getStatus().name()));
+        auditService.log("system", "PAPER_RESET", "paper", paperId, Map.of("keepClaims", keepClaims), Map.of("status", paper.getStatus().name()));
     }
 
     @Transactional

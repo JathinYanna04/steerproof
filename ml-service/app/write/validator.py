@@ -56,19 +56,24 @@ def validate_writer_result(result: WriterResult) -> Tuple[bool, List[str]]:
     if len(result.reel) != 5:
         errors.append(f"Reel must have exactly 5 scenes, found {len(result.reel)}.")
 
+    total_reel_words = 0
     for idx, scene in enumerate(result.reel):
         s_num = scene.n or (idx + 1)
         if len(scene.onScreen) > 40:
             errors.append(f"Scene {s_num}: onScreen text exceeds 40 chars ({len(scene.onScreen)} chars)")
         word_count = len(scene.voiceover.split())
-        if word_count > 30:
-            errors.append(f"Scene {s_num}: voiceover exceeds 30 words ({word_count} words)")
+        total_reel_words += word_count
+        if word_count > 25:
+            errors.append(f"Scene {s_num}: voiceover exceeds 25 words ({word_count} words)")
         if scene.kind == "claim" and not scene.claimIds:
             errors.append(f"Scene {s_num}: block kind is 'claim' but claimIds is empty.")
         if scene.kind == "illustration" and scene.claimIds:
             errors.append(f"Scene {s_num}: illustration block must have empty claimIds.")
         if scene.kind == "brand" and scene.claimIds:
             errors.append(f"Scene {s_num}: brand block must have empty claimIds.")
+
+    if total_reel_words > 85:
+        errors.append(f"Reel total voiceover word count must not exceed 85 words (found {total_reel_words} words). Keep voiceover concise (≈ 15-17 words per scene).")
 
     # 4. Caption validation
     total_caption_chars = sum(len(p.text) for p in result.caption.paragraphs)

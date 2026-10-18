@@ -158,6 +158,9 @@ public class PolicyChecker {
                 }
             }
 
+            String slideType = slide.has("type") ? slide.get("type").asText("") : "";
+            boolean isSourceSlide = "source".equalsIgnoreCase(slideType) || "source".equalsIgnoreCase(kind) || (slideNum == 6 && "source".equalsIgnoreCase(slideType));
+
             // Length limits
             if (headline.length() > 48) {
                 violations.add(new ViolationResult("LENGTH", Severity.BLOCKING, loc + ":headline", "Headline exceeds 48 chars: " + headline.length(), null));
@@ -167,8 +170,8 @@ public class PolicyChecker {
             }
 
             // Check blocks for text rules
-            checkText(headline, loc + ":headline", kind, claimIds, claimsById, violations, false);
-            checkText(body, loc + ":body", kind, claimIds, claimsById, violations, false);
+            checkText(headline, loc + ":headline", kind, claimIds, claimsById, violations, false, isSourceSlide);
+            checkText(body, loc + ":body", kind, claimIds, claimsById, violations, false, isSourceSlide);
 
             if (i == totalSlides - 1) {
                 if (headline.toLowerCase().contains("steerclub.com") || body.toLowerCase().contains("steerclub.com")) {
@@ -319,6 +322,19 @@ public class PolicyChecker {
             List<ViolationResult> violations,
             boolean allowEmoji
     ) {
+        checkText(text, location, kind, claimIds, claimsById, violations, allowEmoji, false);
+    }
+
+    public void checkText(
+            String text,
+            String location,
+            String kind,
+            List<String> claimIds,
+            Map<String, ClaimEntity> claimsById,
+            List<ViolationResult> violations,
+            boolean allowEmoji,
+            boolean isCitation
+    ) {
         if (text == null || text.isBlank()) return;
         String textLower = text.toLowerCase();
 
@@ -408,11 +424,33 @@ public class PolicyChecker {
             }
         }
 
-        // 10. NUMBER_MISMATCH
-        if ("claim".equalsIgnoreCase(kind) && claimIds != null && !claimIds.isEmpty()) {
+        // 10. NUMBER_MISMATCH (ignores numbers inside citations)
+        boolean isCitationBlock = isCitation
+                || location.contains("footnote")
+                || location.contains("citation")
+                || location.contains("source");
+
+        if ("claim".equalsIgnoreCase(kind) && claimIds != null && !claimIds.isEmpty() && !isCitationBlock) {
             Matcher numMatcher = NUMBER_PATTERN.matcher(text);
             while (numMatcher.find()) {
                 String numToken = numMatcher.group().replace("%", "").trim();
+                if (numToken.isEmpty()) continue;
+
+                // Ignore 4-digit years (1900-2099)
+                if (numToken.matches("^(?:19|20)\\d{2}$")) {
+                    continue;
+                }
+
+                // Ignore numbers inside parentheses or citation contexts (e.g. "Hall (2018)", "vol. 12", "pp. 45-67")
+                int start = numMatcher.start();
+                int end = numMatcher.end();
+                String prefix = text.substring(Math.max(0, start - 25), start).toLowerCase();
+                String suffix = text.substring(end, Math.min(text.length(), end + 25)).toLowerCase();
+                if (prefix.contains("et al") || prefix.contains("vol") || prefix.contains("pp.") || prefix.contains("page")
+                        || (prefix.contains("(") && suffix.contains(")"))) {
+                    continue;
+                }
+
                 boolean inAnyQuote = false;
                 for (String cid : claimIds) {
                     ClaimEntity ce = claimsById.get(cid);
@@ -424,7 +462,7 @@ public class PolicyChecker {
                         }
                     }
                 }
-                if (!inAnyQuote && !numToken.isEmpty()) {
+                if (!inAnyQuote) {
                     violations.add(new ViolationResult("NUMBER_MISMATCH", Severity.BLOCKING, location, "Number not found in cited quote: " + numToken, getFirstClaimId(claimIds)));
                 }
             }

@@ -296,4 +296,44 @@ public class PolicyCheckerTest {
         assertTrue(ruleCodes.contains("ALL_CAPS"), "ALL_CAPS should fire for OZEMPIC");
         assertTrue(hasBlocking, "Asset status should be BLOCKED due to BLOCKING violations");
     }
+
+    @Test
+    void testCitationNumbersIgnoredInNumberMismatch() {
+        // Carousel with source slide containing 2018, volume 102, pages 183
+        ObjectNode carousel = objectMapper.createObjectNode();
+        ArrayNode slides = carousel.putArray("slides");
+        
+        ObjectNode s1 = slides.addObject();
+        s1.put("n", 1);
+        s1.put("type", "hook");
+        s1.put("kind", "brand");
+        s1.put("headline", "Weight regain");
+        s1.put("body", "Intro text");
+        s1.putArray("claimIds");
+
+        ObjectNode s6 = slides.addObject();
+        s6.put("n", 6);
+        s6.put("type", "source");
+        s6.put("kind", "claim");
+        s6.put("headline", "The evidence");
+        s6.put("body", "Data from Hall and Kahan (2018), Med Clin North Am vol. 102, pp. 183-197.");
+        s6.putArray("claimIds").add("C-SRC");
+
+        ObjectNode s7 = slides.addObject();
+        s7.put("n", 7);
+        s7.put("type", "closing");
+        s7.put("kind", "brand");
+        s7.put("headline", "Closing");
+        s7.put("body", "steerclub.com");
+        s7.putArray("claimIds");
+
+        // Claim has no 2018, 102, or 183
+        ClaimEntity claim = makeClaim("C-SRC", DoctorStatus.APPROVED, FindingClass.PRIMARY, "Trial data", "Participants regained lost weight.");
+        Map<String, ClaimEntity> claimsMap = Map.of("C-SRC", claim);
+
+        List<PolicyChecker.ViolationResult> violations = policyChecker.checkAsset("A-CAR", "CAROUSEL", carousel, claimsMap);
+        assertFalse(violations.stream().anyMatch(v -> "NUMBER_MISMATCH".equals(v.rule())),
+                "NUMBER_MISMATCH should not fire on citation numbers in source slide");
+    }
 }
+

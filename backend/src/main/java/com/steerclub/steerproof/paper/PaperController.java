@@ -279,20 +279,27 @@ public class PaperController {
     }
 
     @PostMapping("/papers/{id}/reset")
-    public ResponseEntity<?> resetPaper(@PathVariable("id") String id) {
+    public ResponseEntity<?> resetPaper(
+            @PathVariable("id") String id,
+            @RequestParam(value = "keepClaims", defaultValue = "false") boolean keepClaims
+    ) {
         if (!demoMode) {
             throw new ApiException(HttpStatus.FORBIDDEN, "DEMO_MODE_REQUIRED", "Reset is only allowed when DEMO_MODE=true");
         }
         paperRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + id));
 
-        pipelineService.resetPaper(id);
+        pipelineService.resetPaper(id, keepClaims);
 
         PaperEntity updated = paperRepository.findById(id).orElseThrow();
         return ResponseEntity.ok(Map.of(
                 "paperId", id,
                 "status", updated.getStatus().name()
         ));
+    }
+
+    public ResponseEntity<?> resetPaper(String id) {
+        return resetPaper(id, false);
     }
 
     @PostMapping("/papers/{id}/human-events")

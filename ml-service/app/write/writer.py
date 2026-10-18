@@ -33,10 +33,21 @@ def format_claims(claims) -> str:
         )
     return "\n".join(lines)
 
+def format_short_citation(meta) -> str:
+    authors = meta.authors or "Authors"
+    import re
+    first_entry = re.split(r'[,;]', authors)[0].strip()
+    first_entry = re.sub(r'(?i)\s+et\s+al\.?', '', first_entry).strip()
+    tokens = first_entry.split()
+    surname = tokens[-1] if tokens else "Authors"
+    year = meta.year or 2022
+    journal = meta.journal or "Clinical Study"
+    return f"{surname} et al., {year} · {journal}"
+
 def run_writer(req: WriteRequest, llm: LLMClient) -> Tuple[WriteResponse, WriterResult]:
     voice_spec = load_voice_spec()
     claims_text = format_claims(req.claims)
-    citation = f"{req.meta.authors or 'Authors'} ({req.meta.year or 2018}). {req.meta.title or 'Study'}. {req.meta.journal or ''}."
+    citation = format_short_citation(req.meta)
     prompt = load_prompt("writer", {
         "voice_spec": voice_spec,
         "claims": claims_text,

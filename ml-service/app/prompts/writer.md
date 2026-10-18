@@ -47,9 +47,9 @@ carousel: 5–7 slides
   - one idea per slide
   - at most one maroon slide (emotional beat)
   - the "source" slide cites the paper plainly
-static: { headline (≤ 48 chars), support (≤ 110 chars), kind, claimIds, footnote (citation ≤ 90 chars) }
-reel: 5 scenes, total 25–40 seconds of voiceover
-  each scene: { n, onScreen (≤ 40 chars), voiceover (≤ 30 words), kind, claimIds,
+static: { headline (≤ 48 chars), support (≤ 110 chars), kind, claimIds, footnote (short citation format: "<First author> et al., <year> · <journal abbreviation>" ≤ 90 chars) }
+reel: 5 scenes, total 25–40 seconds of voiceover (TOTAL BUDGET: ≤ 85 words across all 5 scenes combined, ≈ 17 words per scene)
+  each scene: { n, onScreen (≤ 40 chars), voiceover (≤ 20 words; concise and conversational; total across all 5 scenes MUST NOT exceed 85 words), kind, claimIds,
                 brollQuery (2–4 words: objects/food/places only, NO people's bodies),
                 motion: "title"|"stat"|"list"|"quote"|"closing" }
   scene 1 hook, scene 5 closing with brand line.

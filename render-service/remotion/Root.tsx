@@ -36,9 +36,9 @@ export const Root: React.FC = () => {
         const fps = 30;
         let totalFrames = 0;
         for (const s of props.scenes) {
-          totalFrames += Math.ceil(((s.durationMs + 400) / 1000) * fps);
+          totalFrames += Math.ceil(((s.durationMs + 200) / 1000) * fps);
         }
-        totalFrames += 45; // 45 frames of outro
+        totalFrames += 30; // 30 frames of outro (1.0s)
         return {
           durationInFrames: Math.max(totalFrames, 90),
         };

@@ -144,7 +144,7 @@ async def generate_reel_audio(
     and scene-{n}.words.json, and produces combined storage/audio/{asset_id}/reel.mp3.
     """
     target_voice = voice or os.environ.get("TTS_VOICE_EN", DEFAULT_VOICE)
-    rate = "-5%"
+    rate = "+18%"
 
     audio_dir = storage_dir / "audio" / asset_id
     audio_dir.mkdir(parents=True, exist_ok=True)
