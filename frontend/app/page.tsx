@@ -3,17 +3,36 @@
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiRequest, showToast, API_BASE } from "@/lib/api";
+import { apiRequest, showToast } from "@/lib/api";
 import { useReviewer } from "@/components/ReviewerContext";
 
 interface PaperSummary {
-  id: string;
-  title?: string;
-  authors?: string;
-  year?: number;
-  journal?: string;
+  paperId: string;
+  title?: string | null;
+  authors?: string | null;
+  year?: number | null;
+  journal?: string | null;
   status: string;
-  pdfPath?: string;
+  createdAt?: string;
+  pdfPath?: string | null;
+  originalFilename?: string | null;
+}
+
+/** Title, else the uploaded PDF's filename, else the paper ID. Never a made-up placeholder. */
+function displayTitle(p: PaperSummary): string {
+  if (p.title && p.title.trim()) return p.title.trim();
+  const file = p.originalFilename || p.pdfPath?.split("/").pop();
+  return file || p.paperId;
+}
+
+function shortAuthors(authors?: string | null): string | null {
+  if (!authors) return null;
+  const list = authors.split(",").map((a) => a.trim()).filter(Boolean);
+  return list.length > 3 ? `${list[0]} et al.` : list.join(", ");
+}
+
+function byNewest(a: PaperSummary, b: PaperSummary) {
+  return (b.createdAt ? Date.parse(b.createdAt) : 0) - (a.createdAt ? Date.parse(a.createdAt) : 0);
 }
 
 export default function HomePage() {
@@ -33,8 +52,22 @@ export default function HomePage() {
 
   const fetchPapers = async () => {
     try {
-      const data = await apiRequest<PaperSummary[]>("/api/papers");
+      const data = (await apiRequest<PaperSummary[]>("/api/papers")).slice().sort(byNewest);
       setPapers(data);
+      // Older list payloads carry only the title; fill authors/year/journal from each paper's detail
+      const missing = data.filter((p) => p.authors === undefined).slice(0, 25);
+      if (missing.length > 0) {
+        const details = await Promise.all(
+          missing.map((p) => apiRequest<PaperSummary>(`/api/papers/${p.paperId}`, { silent: true }).catch(() => null))
+        );
+        const byId = new Map(details.filter(Boolean).map((d) => [d!.paperId, d!]));
+        setPapers((prev) =>
+          prev.map((p) => {
+            const d = byId.get(p.paperId);
+            return d ? { ...p, title: p.title ?? d.title, authors: d.authors, year: d.year, journal: d.journal } : p;
+          })
+        );
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -52,35 +85,18 @@ export default function HomePage() {
         formData.append("theme", theme.trim());
       }
 
-      const res = await fetch(`${API_BASE}/api/papers/upload`, {
+      const data = await apiRequest<{ paperId: string }>("/api/papers", { method: "POST", body: formData });
+      showToast(`Paper ${data.paperId} uploaded`, "success");
+
+      await apiRequest(`/api/papers/${data.paperId}/human-events`, {
         method: "POST",
-        body: formData,
-      });
+        body: JSON.stringify({ kind: "UPLOAD", actor: reviewerName, seconds: elapsedSeconds }),
+        silent: true,
+      }).catch(() => {});
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `Upload failed: ${res.statusText}`);
-      }
-
-      const data = await res.json();
-      showToast(`Paper ${data.paperId || data.id} uploaded successfully!`, "success");
-
-      // Log UPLOAD human event
-      const paperId = data.paperId || data.id;
-      if (paperId) {
-        await apiRequest(`/api/papers/${paperId}/human-events`, {
-          method: "POST",
-          body: JSON.stringify({
-            kind: "UPLOAD",
-            reviewer: reviewerName,
-            seconds: elapsedSeconds,
-          }),
-        }).catch(() => {});
-      }
-
-      router.push(`/papers/${paperId}`);
-    } catch (err: any) {
-      showToast(err.message || "Failed to upload file", "error");
+      router.push(`/papers/${data.paperId}`);
+    } catch {
+      // apiRequest already toasted the server error verbatim
     } finally {
       setUploading(false);
     }
@@ -92,24 +108,21 @@ export default function HomePage() {
     setUploading(true);
     const elapsedSeconds = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
     try {
-      const data = await apiRequest<{ paperId: string }>("/api/papers/upload-url", {
-        method: "POST",
-        body: JSON.stringify({ url: urlInput.trim(), theme: theme.trim() || undefined }),
-      });
-      showToast(`Paper ${data.paperId} downloaded and registered!`, "success");
+      const formData = new FormData();
+      formData.append("url", urlInput.trim());
+      if (theme.trim()) formData.append("theme", theme.trim());
+      const data = await apiRequest<{ paperId: string }>("/api/papers", { method: "POST", body: formData });
+      showToast(`Paper ${data.paperId} registered`, "success");
 
       await apiRequest(`/api/papers/${data.paperId}/human-events`, {
         method: "POST",
-        body: JSON.stringify({
-          kind: "UPLOAD",
-          reviewer: reviewerName,
-          seconds: elapsedSeconds,
-        }),
+        body: JSON.stringify({ kind: "UPLOAD", actor: reviewerName, seconds: elapsedSeconds }),
+        silent: true,
       }).catch(() => {});
 
       router.push(`/papers/${data.paperId}`);
-    } catch (err: any) {
-      showToast(err.message || "Failed to process paper URL", "error");
+    } catch {
+      // apiRequest already toasted the server error verbatim
     } finally {
       setUploading(false);
     }
@@ -117,7 +130,7 @@ export default function HomePage() {
 
   const handleSamplePaper = () => {
     // If P-0001 exists in database, go directly to it
-    const existingP1 = papers.find((p) => p.id === "P-0001");
+    const existingP1 = papers.find((p) => p.paperId === "P-0001");
     if (existingP1) {
       router.push("/papers/P-0001");
     } else {
@@ -156,7 +169,7 @@ export default function HomePage() {
         </h1>
         <p className="text-clay text-sm sm:text-base leading-relaxed">
           Upload clinical research papers to extract and audit claims with doctor oversight,
-          and automatically generate multi-format social assets with mathematical precision.
+          then turn the approved ones into carousel, static, reel and caption drafts that link back to the paper.
         </p>
       </div>
 
@@ -235,7 +248,7 @@ export default function HomePage() {
                 <button
                   type="submit"
                   disabled={uploading || !urlInput.trim()}
-                  className="px-3 py-2 text-xs bg-rust text-cream font-medium rounded-lg hover:bg-[#A84222] disabled:opacity-50 transition-colors"
+                  className="px-3 py-2 text-xs bg-rust text-cream font-medium rounded-lg hover:bg-rust/90 disabled:opacity-50 transition-colors"
                 >
                   Fetch
                 </button>
@@ -272,22 +285,23 @@ export default function HomePage() {
           <div className="grid gap-3">
             {papers.map((p) => (
               <Link
-                key={p.id}
-                href={`/papers/${p.id}`}
+                key={p.paperId}
+                href={`/papers/${p.paperId}`}
+                data-testid="paper-row"
                 className="bg-softPaper hover:bg-cream border border-blush hover:border-clay rounded-xl p-4 sm:p-5 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-3 group"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono text-clay">{p.id}</span>
+                    <span className="text-xs font-mono text-clay">{p.paperId}</span>
                     <span className={`text-[11px] px-2 py-0.5 rounded-full border ${getStatusBadge(p.status)}`}>
                       {p.status.replace(/_/g, " ")}
                     </span>
                   </div>
                   <h3 className="font-sans font-medium text-ink group-hover:text-rust transition-colors text-base line-clamp-1">
-                    {p.title || "Clinical Research Paper"}
+                    {displayTitle(p)}
                   </h3>
                   <p className="text-xs text-clay mt-1">
-                    {p.authors || "Authors"} {p.year ? `(${p.year})` : ""} {p.journal ? `· ${p.journal}` : ""}
+                    {[shortAuthors(p.authors), p.year, p.journal].filter(Boolean).join(" · ")}
                   </p>
                 </div>
 

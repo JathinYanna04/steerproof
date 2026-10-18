@@ -1,0 +1,3 @@
+# Side-by-side build/dev output dirs (NEXT_DIST_DIR)
+.next-*/
+tsconfig.tsbuildinfo

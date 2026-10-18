@@ -40,7 +40,7 @@ export const Navbar: React.FC = () => {
               />
               <button
                 onClick={handleSave}
-                className="px-2.5 py-1 text-xs bg-rust text-cream rounded font-medium hover:bg-[#A84222]"
+                className="px-2.5 py-1 text-xs bg-rust text-cream rounded font-medium hover:bg-rust/90"
               >
                 Save
               </button>

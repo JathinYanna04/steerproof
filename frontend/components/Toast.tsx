@@ -29,11 +29,12 @@ export const ToastContainer: React.FC = () => {
       {toasts.map((t) => (
         <div
           key={t.id}
+          data-testid={`toast-${t.type}`}
           className={`pointer-events-auto p-4 rounded-lg shadow-md border text-sm transition-all duration-300 ${
             t.type === "error"
-              ? "bg-[#661414] text-cream border-red-900"
+              ? "bg-maroon text-cream border-maroon"
               : t.type === "success"
-              ? "bg-[#2A4D38] text-cream border-green-800"
+              ? "bg-emerald-900 text-cream border-emerald-800"
               : "bg-softPaper text-ink border-blush"
           }`}
         >

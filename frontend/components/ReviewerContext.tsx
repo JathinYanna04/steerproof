@@ -62,7 +62,7 @@ export const ReviewerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             <div className="flex justify-end gap-2">
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-rust text-cream text-sm font-medium rounded-md hover:bg-[#A84222] transition-colors"
+                className="px-4 py-2 bg-rust text-cream text-sm font-medium rounded-md hover:bg-rust/90 transition-colors"
               >
                 Set Reviewer Name
               </button>

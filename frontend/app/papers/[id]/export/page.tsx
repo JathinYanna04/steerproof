@@ -100,7 +100,7 @@ export default function ExportPage() {
         method: "POST"
       });
       setExportResult(res);
-      showToast("Paper exported and signed successfully!", "success");
+      showToast("Export package created", "success");
       await fetchData();
     } catch (err: any) {
       if (err.status === 422) {

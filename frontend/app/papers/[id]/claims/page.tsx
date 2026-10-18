@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { apiRequest, showToast, API_BASE } from "@/lib/api";
 import { useReviewer } from "@/components/ReviewerContext";
+import { PageHighlight } from "@/components/PageHighlight";
 
 interface Passage {
   passageId: string;
@@ -63,9 +64,6 @@ export default function ClaimsReviewPage() {
 
   // Review timer
   const cardFocusTimeRef = useRef<number>(Date.now());
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [imgNaturalWidth, setImgNaturalWidth] = useState<number>(595);
-  const [imgRenderedWidth, setImgRenderedWidth] = useState<number>(595);
 
   useEffect(() => {
     loadData();
@@ -81,14 +79,19 @@ export default function ClaimsReviewPage() {
     try {
       const claimsData = await apiRequest<Claim[]>(`/api/papers/${paperId}/claims`);
       setClaims(claimsData);
-      if (claimsData.length > 0 && !selectedClaimId) {
+      // ?focus=<claimId> comes from "Open full source" on the assets page
+      const focus = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("focus") : null;
+      if (focus && claimsData.some((c) => c.claimId === focus)) {
+        setSelectedClaimId(focus);
+        setTimeout(() => document.getElementById(`claim-card-${focus}`)?.scrollIntoView({ block: "center" }), 50);
+      } else if (claimsData.length > 0 && !selectedClaimId) {
         setSelectedClaimId(claimsData[0].claimId);
       }
 
       const passagesData = await apiRequest<Passage[]>(`/api/papers/${paperId}/passages`).catch(() => []);
       setPassages(passagesData);
     } catch (e: any) {
-      showToast(e.message || "Failed to load claims", "error");
+      // apiRequest already toasted the server error verbatim
     } finally {
       setLoading(false);
     }
@@ -164,7 +167,7 @@ export default function ClaimsReviewPage() {
       showToast(`Claim ${claimId} approved!`, "success");
       setClaims((prev) => prev.map((c) => (c.claimId === claimId ? { ...c, ...res.claim } : c)));
     } catch (e: any) {
-      showToast(e.message || "Approval failed", "error");
+      // apiRequest already toasted the server error verbatim
     }
   };
 
@@ -192,7 +195,7 @@ export default function ClaimsReviewPage() {
       setClaims((prev) => prev.map((c) => (c.claimId === editingClaim.claimId ? { ...c, ...res.claim } : c)));
       setEditingClaim(null);
     } catch (e: any) {
-      showToast(e.message || "Edit failed", "error");
+      // apiRequest already toasted the server error verbatim
     }
   };
 
@@ -222,7 +225,7 @@ export default function ClaimsReviewPage() {
       setClaims((prev) => prev.map((c) => (c.claimId === rejectingClaim.claimId ? { ...c, ...res.claim } : c)));
       setRejectingClaim(null);
     } catch (e: any) {
-      showToast(e.message || "Rejection failed", "error");
+      // apiRequest already toasted the server error verbatim
     }
   };
 
@@ -233,8 +236,7 @@ export default function ClaimsReviewPage() {
       showToast("Content generation initiated! Redirecting to assets...", "success");
       router.push(`/papers/${paperId}/assets`);
     } catch (e: any) {
-      // 422 shows blockers verbatim
-      showToast(e.message || "Gate 1 Check Failed", "error");
+      // apiRequest toasts the 422 Gate 1 blockers verbatim
     } finally {
       setGenerating(false);
     }
@@ -269,7 +271,7 @@ export default function ClaimsReviewPage() {
           <button
             onClick={handleGenerateContent}
             disabled={generating}
-            className="px-4 py-2 bg-rust text-cream text-xs font-medium rounded-lg hover:bg-[#A84222] transition-colors disabled:opacity-50 shadow-sm"
+            className="px-4 py-2 bg-rust text-cream text-xs font-medium rounded-lg hover:bg-rust/90 transition-colors disabled:opacity-50 shadow-sm"
           >
             {generating ? "Verifying Gate 1..." : "Generate Content →"}
           </button>
@@ -290,6 +292,8 @@ export default function ClaimsReviewPage() {
               return (
                 <div
                   key={c.claimId}
+                  id={`claim-card-${c.claimId}`}
+                  data-testid="claim-card"
                   onClick={() => setSelectedClaimId(c.claimId)}
                   className={`p-4 rounded-xl border transition-all cursor-pointer ${
                     isSelected
@@ -436,40 +440,15 @@ export default function ClaimsReviewPage() {
                   Page {selectedClaim.passage?.page || 1} Layout & Bounding Box
                 </div>
 
-                <div className="relative border border-blush rounded-md overflow-hidden bg-white shadow-inner">
-                  <img
-                    ref={imgRef}
-                    src={`${API_BASE}/files/pages/${paperId}/${selectedClaim.passage?.page || 1}.png`}
-                    alt={`Page ${selectedClaim.passage?.page || 1}`}
-                    className="max-h-[700px] w-auto object-contain block"
-                    onLoad={(e) => {
-                      const target = e.currentTarget;
-                      setImgNaturalWidth(target.naturalWidth || 595);
-                      setImgRenderedWidth(target.clientWidth || 595);
-                    }}
+                <div className="border border-blush rounded-md overflow-hidden shadow-inner max-w-full">
+                  <PageHighlight
+                    paperId={paperId}
+                    page={selectedClaim.passage?.page || 1}
+                    bbox={selectedClaim.passage?.bbox}
+                    pageWidth={selectedClaim.passage?.pageWidth}
+                    pageHeight={selectedClaim.passage?.pageHeight}
+                    imgClassName="max-h-[700px] w-auto"
                   />
-
-                  {/* Rust Translucent Highlight Box */}
-                  {selectedClaim.passage?.bbox && (
-                    <div
-                      style={(() => {
-                        const bbox = selectedClaim.passage.bbox;
-                        const pageWidth = selectedClaim.passage.pageWidth || imgNaturalWidth || 595;
-                        const scale = (imgRef.current?.clientWidth || imgRenderedWidth) / pageWidth;
-                        return {
-                          position: "absolute",
-                          left: `${bbox.l * scale}px`,
-                          top: `${bbox.t * scale}px`,
-                          width: `${(bbox.r - bbox.l) * scale}px`,
-                          height: `${(bbox.b - bbox.t) * scale}px`,
-                          backgroundColor: "rgba(192, 78, 42, 0.28)",
-                          border: "2px solid #C04E2A",
-                          borderRadius: "3px",
-                          pointerEvents: "none",
-                        };
-                      })()}
-                    />
-                  )}
                 </div>
               </div>
             </div>
@@ -533,7 +512,7 @@ export default function ClaimsReviewPage() {
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="px-4 py-2 bg-rust text-cream text-xs font-medium rounded-lg hover:bg-[#A84222]"
+                className="px-4 py-2 bg-rust text-cream text-xs font-medium rounded-lg hover:bg-rust/90"
               >
                 Save & Re-verify
               </button>
