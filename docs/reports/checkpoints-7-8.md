@@ -153,3 +153,82 @@
 ```
 ============================== 23 passed in 1.63s ==============================
 ```
+
+---
+
+## SECTION C: MINIMAL FRONTEND (Next.js 14 App Router, Calm Brand)
+
+### 1. Architecture & Design Tokens
+- **Framework**: Next.js 14.2.15 (App Router), React 18, TypeScript, TailwindCSS, Lucide-react.
+- **Brand Palette (from `docs/BRAND.md`)**:
+  - `cream`: `#F5EBDF` (calm canvas background)
+  - `softPaper`: `#F8F2EB` (card surfaces)
+  - `ink`: `#351D1D` (high-contrast typographic ink)
+  - `rust`: `#C04E2A` (primary action buttons, focus rings, and bbox overlays)
+  - `maroon`: `#661414` (secondary brand accents)
+  - `blush`: `#E6CBBD` (subtle borders and divider lines)
+  - `clay`: `#B58777` (muted secondary text)
+  - Zero unapproved neon colors or generic templates.
+- **Typography**:
+  - `font-serif`: *Instrument Serif* (editorial headlines, brand identity)
+  - `font-sans`: *Inter* (interface controls, data tables, clinical claims)
+  - `font-hand`: *Caveat* (callout notes and citations)
+
+### 2. Frontend Routes & Key Features
+
+| Route | View | Key Capabilities |
+| :--- | :--- | :--- |
+| `/` | **Home / Papers** | Drag-drop PDF upload, paper URL fetcher, theme selector, list of papers with live status badges, claim review progress, reviewer identity bar in header (defaults to `Jathin Reddy Yanna (non-clinician reviewer)` stored in `localStorage`). |
+| `/papers/[id]` | **Pipeline Monitor** | Live stage stepper (Parse → Extract → Verify → Review → Write → Render → Review → Export) with elapsed seconds, LLM calls, cache counts, retry button on FAILED stages, and paper stats summary card. |
+| `/papers/[id]/claims` | **Gate 1 Claims Console** | Split layout: Left 40% sorted claim cards (RED → AMBER → GREEN), quote match %, numbers check, population fit, Approve/Edit/Reject modal dialogs. Right 60% real PDF page image with translucent rust highlight over bbox coordinates, page and section labels, full passage text. Keyboard shortcuts: `j`/`k` (next/prev), `a` (approve), `e` (edit), `r` (reject). Focused review timer sends `reviewSeconds`. "Generate Content" button disabled until Gate 1 passes. |
+| `/papers/[id]/assets` | **Gate 2 Asset Console** | Format tabs: Carousel · Static · Reel · Caption. Shows real 4:5 and 9:16 aspect ratio previews. Interactive clickable blocks from `content.blocks` outline in rust on hover; clicking opens right-hand evidence drawer showing direct quotes, page thumbnails, and clinical study context. Reel player synchronizes storyline scenes with video playback. Violations panel displays BLOCKING (red) and WARNING (amber) badges. Writer reasoning box displays `coreMessage` and clinical framing. |
+| `/papers/[id]/export` | **Release Packaging** | Big "Export Approved Content" action. On 422: renders `blockedBy` checklist with direct links to unapproved assets or pending claims. On 200: provides direct download link for signed `P-xxxx.zip`, review metrics summary card, and package contents manifest preview. |
+
+### 3. Automated Playwright Smoke Test Verification
+
+Scripted Playwright test (`scripts/ui_smoke_test.js`) executed against live servers on port 3000 and 8080:
+```
+=== SteerProof UI Smoke Test & Screenshot Capture ===
+
+[1/5] Navigating to Home Page (http://localhost:3000/)...
+✓ Home page loaded. Title: "Clinical metabolic evidence, verified."
+✓ Saved screenshot: /home/yjr/steerproof/storage/debug/ui-home.png
+
+[2/5] Navigating to Pipeline Page (http://localhost:3000/papers/P-0001)...
+✓ Pipeline monitor loaded for P-0001
+✓ Saved screenshot: /home/yjr/steerproof/storage/debug/ui-pipeline.png
+
+[3/5] Navigating to Gate 1 Claims Console (http://localhost:3000/papers/P-0001/claims)...
+✓ Claims loaded (10 clickable claim elements found)
+Clicking claim card to test click-to-source navigation...
+✓ Clicked claim C-0001-002
+✓ Pass: Translucent rust bounding-box highlight overlay is VISIBLE on source page
+✓ Saved screenshot: /home/yjr/steerproof/storage/debug/ui-claims.png
+
+[4/5] Navigating to Gate 2 Assets Console (http://localhost:3000/papers/P-0001/assets)...
+✓ Gate 2 Asset Review console loaded
+Navigating to carousel slide 2 with clinical claim...
+✓ Switched to Slide 2
+Clicking carousel overlay block to inspect clinical evidence...
+✓ Clicked interactive text block
+✓ Pass: Side drawer successfully opened and displayed verified clinical study quote!
+✓ Saved screenshot: /home/yjr/steerproof/storage/debug/ui-assets.png
+
+[5/5] Navigating to Export Page (http://localhost:3000/papers/P-0001/export)...
+✓ Export release packaging page loaded
+✓ Pass: Clinical safety gate pre-checks active and visible
+✓ Saved screenshot: /home/yjr/steerproof/storage/debug/ui-export.png
+
+=======================================================
+ALL 5 SMOKE TEST STEPS & SCREENSHOTS COMPLETED SUCCESSFULLY!
+=======================================================
+```
+
+### 4. Generated Screenshot Files
+All 5 full-page UI screenshots captured at 1440px viewport width:
+- `storage/debug/ui-home.png` (1440 × 7582, 569 KB)
+- `storage/debug/ui-pipeline.png` (1440 × 1130, 122 KB)
+- `storage/debug/ui-claims.png` (1440 × 951, 288 KB)
+- `storage/debug/ui-assets.png` (1440 × 950, 137 KB)
+- `storage/debug/ui-export.png` (1440 × 1214, 159 KB)
+

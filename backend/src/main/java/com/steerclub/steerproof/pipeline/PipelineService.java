@@ -417,10 +417,33 @@ public class PipelineService {
                         paperId, metaDto, approvedClaims, paper.getTheme(), "en", null
                 );
 
-                saveAndCheckAsset(paperId, AssetType.CAROUSEL, writeRes.carousel(), claimsById);
-                saveAndCheckAsset(paperId, AssetType.STATIC, writeRes.staticBlock(), claimsById);
-                saveAndCheckAsset(paperId, AssetType.REEL, writeRes.reel(), claimsById);
-                saveAndCheckAsset(paperId, AssetType.CAPTION, writeRes.caption(), claimsById);
+                Map<String, Object> car = writeRes.carousel();
+                if (car != null) {
+                    car.put("coreMessage", writeRes.coreMessage());
+                    car.put("reasoning", writeRes.reasoning());
+                }
+                saveAndCheckAsset(paperId, AssetType.CAROUSEL, car, claimsById);
+
+                Map<String, Object> sta = writeRes.staticBlock();
+                if (sta != null) {
+                    sta.put("coreMessage", writeRes.coreMessage());
+                    sta.put("reasoning", writeRes.reasoning());
+                }
+                saveAndCheckAsset(paperId, AssetType.STATIC, sta, claimsById);
+
+                Map<String, Object> reel = writeRes.reel();
+                if (reel != null) {
+                    reel.put("coreMessage", writeRes.coreMessage());
+                    reel.put("reasoning", writeRes.reasoning());
+                }
+                saveAndCheckAsset(paperId, AssetType.REEL, reel, claimsById);
+
+                Map<String, Object> cap = writeRes.caption();
+                if (cap != null) {
+                    cap.put("coreMessage", writeRes.coreMessage());
+                    cap.put("reasoning", writeRes.reasoning());
+                }
+                saveAndCheckAsset(paperId, AssetType.CAPTION, cap, claimsById);
 
                 run.setEndedAt(Instant.now());
                 run.setOk(true);
