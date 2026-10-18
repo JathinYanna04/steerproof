@@ -25,6 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.*;
 
+import com.steerclub.steerproof.asset.AssetClaimEntity;
+import com.steerclub.steerproof.policy.PolicyChecker;
+import com.steerclub.steerproof.policy.PolicyViolationEntity;
+import com.fasterxml.jackson.databind.JsonNode;
+
 @Service
 public class PipelineService {
 
@@ -42,6 +47,7 @@ public class PipelineService {
     private final AssetClaimRepository assetClaimRepository;
     private final PolicyViolationRepository policyViolationRepository;
     private final HumanEventRepository humanEventRepository;
+    private final PolicyChecker policyChecker;
 
     public PipelineService(
             PaperRepository paperRepository,
@@ -55,7 +61,8 @@ public class PipelineService {
             AssetRepository assetRepository,
             AssetClaimRepository assetClaimRepository,
             PolicyViolationRepository policyViolationRepository,
-            HumanEventRepository humanEventRepository
+            HumanEventRepository humanEventRepository,
+            PolicyChecker policyChecker
     ) {
         this.paperRepository = paperRepository;
         this.passageRepository = passageRepository;
@@ -69,6 +76,7 @@ public class PipelineService {
         this.assetClaimRepository = assetClaimRepository;
         this.policyViolationRepository = policyViolationRepository;
         this.humanEventRepository = humanEventRepository;
+        this.policyChecker = policyChecker;
     }
 
     @Async
@@ -370,6 +378,59 @@ public class PipelineService {
                 auditService.log("system", "STATUS_CHANGE", "paper", paperId, prevStatus, PaperStatus.AWAITING_CLAIM_REVIEW);
             }
 
+            // Stage 4: WRITE + POLICY
+            if (paper.getStatus() == PaperStatus.WRITING) {
+                currentStage = "WRITE";
+                stageStart = Instant.now();
+                PipelineRunEntity run = new PipelineRunEntity(paperId, "WRITE", stageStart);
+
+                List<ClaimEntity> allClaims = claimRepository.findByPaperIdOrderByIdAsc(paperId);
+                Map<String, ClaimEntity> claimsById = new HashMap<>();
+                List<MlServiceClient.ApprovedClaimDto> approvedClaims = new ArrayList<>();
+                for (ClaimEntity c : allClaims) {
+                    claimsById.put(c.getId(), c);
+                    if (c.getDoctorStatus() == DoctorStatus.APPROVED || c.getDoctorStatus() == DoctorStatus.EDITED) {
+                        approvedClaims.add(new MlServiceClient.ApprovedClaimDto(
+                                c.getId(),
+                                c.getEditedCopy(),
+                                c.getScientificClaim(),
+                                c.getConsumerDraft(),
+                                c.getQuote(),
+                                c.getFindingClass() != null ? c.getFindingClass().name() : "PRIMARY",
+                                parseNumbers(c.getNumbers()),
+                                parseLimitations(c.getLimitations()),
+                                c.getPopulation()
+                        ));
+                    }
+                }
+
+                MlServiceClient.PaperMetaDto metaDto = new MlServiceClient.PaperMetaDto(
+                        paper.getTitle(), paper.getAuthors(), paper.getYear(), paper.getJournal(), paper.getDoi()
+                );
+
+                MlServiceClient.WriteResponse writeRes = mlServiceClient.write(
+                        paperId, metaDto, approvedClaims, paper.getTheme(), "en", null
+                );
+
+                saveAndCheckAsset(paperId, AssetType.CAROUSEL, writeRes.carousel(), claimsById);
+                saveAndCheckAsset(paperId, AssetType.STATIC, writeRes.staticBlock(), claimsById);
+                saveAndCheckAsset(paperId, AssetType.REEL, writeRes.reel(), claimsById);
+                saveAndCheckAsset(paperId, AssetType.CAPTION, writeRes.caption(), claimsById);
+
+                run.setEndedAt(Instant.now());
+                run.setOk(true);
+                run.setLlmCalls(writeRes.llmCalls());
+                run.setCacheHits(writeRes.cacheHits());
+                pipelineRunRepository.save(run);
+
+                PaperStatus prevStatus = paper.getStatus();
+                paper.setStatus(PaperStatus.RENDERING);
+                paper.setFailedStage(null);
+                paper.setError(null);
+                paperRepository.save(paper);
+                auditService.log("system", "STATUS_CHANGE", "paper", paperId, prevStatus, PaperStatus.RENDERING);
+            }
+
         } catch (Exception e) {
             log.error("Pipeline failed for paper {} at stage {}: {}", paperId, currentStage, e.getMessage(), e);
 
@@ -458,5 +519,157 @@ public class PipelineService {
         paperRepository.save(paper);
 
         auditService.log("system", "PAPER_RESET", "paper", paperId, Map.of(), Map.of("status", paper.getStatus().name()));
+    }
+
+    @Transactional
+    public AssetEntity saveAndCheckAsset(
+            String paperId,
+            AssetType type,
+            Map<String, Object> contentMap,
+            Map<String, ClaimEntity> claimsById
+    ) throws Exception {
+        if (contentMap == null) return null;
+
+        String assetId = idGenerator.assetId(paperId, type);
+        JsonNode contentNode = objectMapper.valueToTree(contentMap);
+        String contentJson = objectMapper.writeValueAsString(contentMap);
+
+        // Delete old claims and violations for this asset
+        assetClaimRepository.deleteByAssetId(assetId);
+        policyViolationRepository.deleteByAssetId(assetId);
+
+        // 1. Extract AssetClaims
+        List<AssetClaimEntity> assetClaims = new ArrayList<>();
+        if (type == AssetType.CAROUSEL) {
+            JsonNode slides = contentNode.has("slides") ? contentNode.get("slides") : contentNode;
+            if (slides != null && slides.isArray()) {
+                for (int i = 0; i < slides.size(); i++) {
+                    JsonNode slide = slides.get(i);
+                    int n = slide.has("n") ? slide.get("n").asInt() : (i + 1);
+                    String loc = "slide:" + n;
+                    if (slide.has("claimIds") && slide.get("claimIds").isArray()) {
+                        for (JsonNode cNode : slide.get("claimIds")) {
+                            assetClaims.add(new AssetClaimEntity(assetId, cNode.asText(), loc));
+                        }
+                    }
+                }
+            }
+        } else if (type == AssetType.STATIC) {
+            if (contentNode.has("claimIds") && contentNode.get("claimIds").isArray()) {
+                for (JsonNode cNode : contentNode.get("claimIds")) {
+                    assetClaims.add(new AssetClaimEntity(assetId, cNode.asText(), "static:headline"));
+                }
+            }
+        } else if (type == AssetType.REEL) {
+            JsonNode scenes = contentNode.has("scenes") ? contentNode.get("scenes") : contentNode;
+            if (scenes != null && scenes.isArray()) {
+                for (int i = 0; i < scenes.size(); i++) {
+                    JsonNode scene = scenes.get(i);
+                    int n = scene.has("n") ? scene.get("n").asInt() : (i + 1);
+                    String loc = "scene:" + n;
+                    if (scene.has("claimIds") && scene.get("claimIds").isArray()) {
+                        for (JsonNode cNode : scene.get("claimIds")) {
+                            assetClaims.add(new AssetClaimEntity(assetId, cNode.asText(), loc));
+                        }
+                    }
+                }
+            }
+        } else if (type == AssetType.CAPTION) {
+            JsonNode paras = contentNode.has("paragraphs") ? contentNode.get("paragraphs") : null;
+            if (paras != null && paras.isArray()) {
+                for (int i = 0; i < paras.size(); i++) {
+                    JsonNode p = paras.get(i);
+                    String loc = "caption:p" + (i + 1);
+                    if (p.has("claimIds") && p.get("claimIds").isArray()) {
+                        for (JsonNode cNode : p.get("claimIds")) {
+                            assetClaims.add(new AssetClaimEntity(assetId, cNode.asText(), loc));
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Run PolicyChecker
+        List<PolicyChecker.ViolationResult> violations = policyChecker.checkAsset(assetId, type.name(), contentNode, claimsById);
+        boolean hasBlocking = false;
+        List<PolicyViolationEntity> violationEntities = new ArrayList<>();
+        for (PolicyChecker.ViolationResult v : violations) {
+            violationEntities.add(new PolicyViolationEntity(assetId, v.claimId(), v.location(), v.rule(), v.severity(), v.detail()));
+            if (v.severity() == Severity.BLOCKING) {
+                hasBlocking = true;
+            }
+        }
+
+        // 3. Save or update AssetEntity FIRST so foreign keys can reference assetId
+        Optional<AssetEntity> existing = assetRepository.findById(assetId);
+        AssetEntity asset = existing.orElseGet(() -> {
+            AssetEntity a = new AssetEntity();
+            a.setId(assetId);
+            a.setPaperId(paperId);
+            a.setType(type);
+            a.setLanguage("en");
+            a.setVersion(1);
+            return a;
+        });
+
+        if (existing.isPresent()) {
+            asset.setVersion(asset.getVersion() + 1);
+        }
+        asset.setContent(contentJson);
+        asset.setStatus(hasBlocking ? AssetStatus.BLOCKED : AssetStatus.DRAFT);
+        AssetEntity saved = assetRepository.save(asset);
+
+        // 4. Save AssetClaims and PolicyViolations
+        assetClaimRepository.saveAll(assetClaims);
+        policyViolationRepository.saveAll(violationEntities);
+
+        return saved;
+    }
+
+    public void regenerateSingleAsset(AssetEntity asset) {
+        String paperId = asset.getPaperId();
+        PaperEntity paper = paperRepository.findById(paperId).orElse(null);
+        if (paper == null) return;
+
+        List<ClaimEntity> allClaims = claimRepository.findByPaperIdOrderByIdAsc(paperId);
+        Map<String, ClaimEntity> claimsById = new HashMap<>();
+        List<MlServiceClient.ApprovedClaimDto> approvedClaims = new ArrayList<>();
+        for (ClaimEntity c : allClaims) {
+            claimsById.put(c.getId(), c);
+            if (c.getDoctorStatus() == DoctorStatus.APPROVED || c.getDoctorStatus() == DoctorStatus.EDITED) {
+                approvedClaims.add(new MlServiceClient.ApprovedClaimDto(
+                        c.getId(),
+                        c.getEditedCopy(),
+                        c.getScientificClaim(),
+                        c.getConsumerDraft(),
+                        c.getQuote(),
+                        c.getFindingClass() != null ? c.getFindingClass().name() : "PRIMARY",
+                        parseNumbers(c.getNumbers()),
+                        parseLimitations(c.getLimitations()),
+                        c.getPopulation()
+                ));
+            }
+        }
+
+        MlServiceClient.PaperMetaDto metaDto = new MlServiceClient.PaperMetaDto(
+                paper.getTitle(), paper.getAuthors(), paper.getYear(), paper.getJournal(), paper.getDoi()
+        );
+
+        MlServiceClient.WriteResponse writeRes = mlServiceClient.write(
+                paperId, metaDto, approvedClaims, paper.getTheme(), asset.getLanguage(), asset.getType().name()
+        );
+
+        Map<String, Object> contentMap = switch (asset.getType()) {
+            case CAROUSEL -> writeRes.carousel();
+            case STATIC -> writeRes.staticBlock();
+            case REEL -> writeRes.reel();
+            case CAPTION -> writeRes.caption();
+        };
+
+        try {
+            saveAndCheckAsset(paperId, asset.getType(), contentMap, claimsById);
+        } catch (Exception e) {
+            log.error("Failed to regenerate asset {}: {}", asset.getId(), e.getMessage(), e);
+        }
     }
 }

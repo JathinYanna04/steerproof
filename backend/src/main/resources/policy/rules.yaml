@@ -1,0 +1,142 @@
+rules:
+  DRUG_BRAND:
+    severity: BLOCKING
+    words:
+      - ozempic
+      - wegovy
+      - rybelsus
+      - mounjaro
+      - zepbound
+      - saxenda
+      - victoza
+      - trulicity
+      - xenical
+      - alli
+      - contrave
+      - qsymia
+      - glycomet
+      - glucophage
+
+  DRUG_GENERIC_PROMO:
+    severity: WARNING
+    words:
+      - semaglutide
+      - tirzepatide
+      - liraglutide
+      - dulaglutide
+
+  PROMISE:
+    severity: BLOCKING
+    regexes:
+      - '(?i)\b(?:lose|drop|shed)\s+\d+\s*(?:kg|kilo|kilos|pounds|lbs)\b'
+      - '(?i)\bin\s+\d+\s*(?:days|weeks)\b'
+      - '(?i)\bguarantee(?:d)?\b'
+      - '(?i)\bresults\s+in\b'
+      - '(?i)\byou\s+will\s+lose\b'
+
+  HYPE:
+    severity: BLOCKING
+    words:
+      - miracle
+      - magic
+      - secret
+      - hack
+      - cure
+      - cures
+      - melt fat
+      - detox
+      - burn fat fast
+      - revolutionary
+      - breakthrough
+      - instantly
+      - effortless
+      - guarantee
+      - guaranteed
+
+  FEAR_SHAME:
+    severity: BLOCKING
+    words:
+      - lazy
+      - fat people
+      - obese people
+      - ugly
+      - disgusting
+      - no excuses
+      - you're killing
+      - ticking time bomb
+      - deadly
+
+  BODY:
+    severity: BLOCKING
+    words:
+      - before and after
+      - before/after
+      - bikini body
+      - beach body
+      - transformation
+      - flat belly
+
+  ALL_CAPS:
+    severity: BLOCKING
+    allowlist:
+      - GLP-1
+      - HbA1c
+      - BMI
+      - ICMR
+      - INDIAB
+      - DNA
+      - RCT
+      - STEP
+      - SURMOUNT
+      - PCOS
+      - WHO
+      - ICMR-INDIAB
+
+  LENGTH:
+    severity: BLOCKING
+    limits:
+      carousel_headline: 48
+      carousel_body: 160
+      static_headline: 48
+      static_support: 110
+      static_footnote: 90
+      reel_onscreen: 40
+      reel_voiceover_words: 30
+      caption_total: 1800
+      hashtags_min: 8
+      hashtags_max: 12
+
+  CERTAINTY_ON_EXPLORATORY:
+    severity: WARNING
+    certainty_words:
+      - proves
+      - always
+      - never
+      - will
+      - definitely
+      - shows that
+    qualifier_words:
+      - suggests
+      - may
+      - in this study
+      - in the trial
+      - one study
+
+  CAUSAL_ON_ASSOCIATION:
+    severity: WARNING
+    association_words:
+      - associated
+      - linked
+      - correlated
+    causal_words:
+      - causes
+      - leads to
+      - makes you
+      - because of
+
+  MISSING_SIGNOFF:
+    severity: BLOCKING
+    required_signoff: "steerclub.com"
+
+  EMOJI_IN_ASSET:
+    severity: WARNING

@@ -109,3 +109,76 @@ class VerifyResponse(BaseModel):
     results: list[ClaimVerifyDetail]
     llmCalls: int
     cacheHits: int
+
+Kind = Literal["claim", "illustration", "brand"]
+
+class Slide(BaseModel):
+    n: int
+    type: Literal["hook", "point", "illustration", "source", "closing"]
+    headline: str
+    body: str = ""
+    kind: Kind
+    claimIds: list[str] = []
+    background: Literal["cream", "maroon"] = "cream"
+
+class StaticContent(BaseModel):
+    headline: str
+    support: str
+    kind: Kind
+    claimIds: list[str] = []
+    footnote: str
+
+class Scene(BaseModel):
+    n: int
+    onScreen: str
+    voiceover: str
+    kind: Kind
+    claimIds: list[str] = []
+    brollQuery: str
+    motion: Literal["title", "stat", "list", "quote", "closing"]
+
+class CaptionPara(BaseModel):
+    text: str
+    kind: Kind
+    claimIds: list[str] = []
+
+class CaptionContent(BaseModel):
+    paragraphs: list[CaptionPara]
+    hashtags: list[str]
+
+class WriterResult(BaseModel):
+    coreMessage: str
+    reasoning: str
+    carousel: list[Slide]
+    static: StaticContent
+    reel: list[Scene]
+    caption: CaptionContent
+
+class ApprovedClaimInput(BaseModel):
+    claimId: str
+    approvedCopy: Optional[str] = None
+    scientificClaim: str
+    consumerDraft: Optional[str] = None
+    quote: str
+    findingClass: str
+    numbers: list[NumberRef] = []
+    limitations: list[str] = []
+    population: Optional[str] = None
+
+class WriteRequest(BaseModel):
+    paperId: str
+    meta: PaperMeta
+    claims: list[ApprovedClaimInput]
+    theme: Optional[str] = None
+    language: Literal["en", "hinglish"] = "en"
+    only: Optional[Literal["CAROUSEL", "STATIC", "REEL", "CAPTION"]] = None
+
+class WriteResponse(BaseModel):
+    coreMessage: str
+    reasoning: str
+    carousel: dict
+    static: dict
+    reel: dict
+    caption: dict
+    llmCalls: int
+    cacheHits: int

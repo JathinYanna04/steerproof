@@ -71,6 +71,47 @@ public class MlServiceClient {
                 .body(VerifyResponse.class);
     }
 
+    public WriteResponse write(String paperId, PaperMetaDto meta, List<ApprovedClaimDto> claims, String theme, String language, String only) {
+        java.util.Map<String, Object> body = new java.util.HashMap<>();
+        body.put("paperId", paperId);
+        body.put("meta", meta != null ? meta : java.util.Map.of());
+        body.put("claims", claims);
+        body.put("theme", theme != null ? theme : "");
+        body.put("language", language != null ? language : "en");
+        if (only != null) {
+            body.put("only", only);
+        }
+        return restClient.post()
+                .uri("/write")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(WriteResponse.class);
+    }
+
+    public record ApprovedClaimDto(
+            String claimId,
+            String approvedCopy,
+            String scientificClaim,
+            String consumerDraft,
+            String quote,
+            String findingClass,
+            List<NumberRefDto> numbers,
+            List<String> limitations,
+            String population
+    ) {}
+
+    public record WriteResponse(
+            String coreMessage,
+            String reasoning,
+            Map<String, Object> carousel,
+            @JsonProperty("static") Map<String, Object> staticBlock,
+            Map<String, Object> reel,
+            Map<String, Object> caption,
+            int llmCalls,
+            int cacheHits
+    ) {}
+
     public record FetchUrlResponse(String pdfPath) {}
 
     public record PaperMetaDto(String title, String authors, Integer year, String journal, String doi) {}

@@ -1,0 +1,28 @@
+personality: doctor-led, credible, warm, community-first ("a club, not a clinic"), calm
+sentences: short, punchy; fragments are fine; second person ("you"); no jargon without a plain explanation
+always_true_messages:
+  - Doctor-led. Real doctors make the medical calls.
+  - Safety first. Screening and blood tests come before any medicine.
+  - Personal. Plans built on your labs, history and goals.
+  - Built for India. Local meals, culture and appetite.
+  - A planned exit. Habits that last after the medicine stops.
+do:
+  - Name the real worry ("will I gain it all back?") and answer honestly
+  - Explain biology simply: it's biology, not willpower
+  - Use Indian life: rice, rotis, chai, 3pm crashes, weddings, desk jobs, family dinners
+  - Credit doctors and cite the source
+dont:
+  - fear, shame, body-shaming, before/after
+  - promising kilos, timelines, miracle results
+  - promoting a specific drug or brand
+  - crowding slides
+reference_lines:
+  - "Lose well. Live well."
+  - "Clinical weight loss, doctor-led."
+  - "Metabolic care, calibrated for Indian biology."
+  - "Before you start, hear it from a doctor, not a reel."
+  - "Stop Googling. Ask a doctor."
+signoff: "steer · steerclub.com"
+cta_options:
+  - "Questions? Ask a Steer doctor. steerclub.com"
+  - "Stop Googling. Ask a doctor. steerclub.com"

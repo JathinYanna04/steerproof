@@ -7,8 +7,10 @@ from app.config import get_settings
 from app.schemas import (
     ParseRequest, ParseResponse,
     ExtractRequest, ExtractResponse,
-    VerifyRequest, VerifyResponse, ClaimVerifyDetail
+    VerifyRequest, VerifyResponse, ClaimVerifyDetail,
+    WriteRequest, WriteResponse
 )
+from app.write.writer import run_writer
 from app.parse.docling_parser import parse_pdf
 from app.parse.page_images import render_page_images
 from app.parse.meta import extract_meta
@@ -159,3 +161,13 @@ def verify_endpoint(req: VerifyRequest):
     except Exception as e:
         logger.error(f"Error in /verify: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/write", response_model=WriteResponse)
+async def write_content(req: WriteRequest):
+    try:
+        response, _ = run_writer(req, llm_client)
+        return response
+    except Exception as e:
+        logger.error(f"Error in /write: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+

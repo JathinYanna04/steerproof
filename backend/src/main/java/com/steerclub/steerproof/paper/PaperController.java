@@ -185,6 +185,8 @@ public class PaperController {
             paper.setStatus(PaperStatus.EXTRACTING);
         } else if ("VERIFY".equalsIgnoreCase(failedStage)) {
             paper.setStatus(PaperStatus.VERIFYING);
+        } else if ("WRITE".equalsIgnoreCase(failedStage)) {
+            paper.setStatus(PaperStatus.WRITING);
         } else {
             paper.setStatus(PaperStatus.PARSING);
         }
@@ -266,6 +268,7 @@ public class PaperController {
 
         paper.setStatus(PaperStatus.WRITING);
         paperRepository.save(paper);
+        pipelineService.runPipeline(id);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of(
                 "paperId", paper.getId(),

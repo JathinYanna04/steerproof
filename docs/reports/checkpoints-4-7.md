@@ -66,3 +66,223 @@ Updated `AuditService.java` to parse `before` and `after` JSON columns using `Ob
   }
 ]
 ```
+
+---
+
+## SECTION B: CHECKPOINT 4, WRITER + POLICY
+
+### 1. Full Writer JSON for P-0001
+The writer pipeline (`POST /write` in `ml-service` and stage `WRITE` in `backend`) generated the complete multi-format campaign for paper `P-0001`. Every text block specifies its `kind` (`claim`, `illustration`, `brand`) and explicitly lists all cited `claimIds`.
+
+```json
+{
+  "coreMessage": "Long-term weight management is driven by appetite biology rather than willpower, making ongoing medical support essential for lasting results.",
+  "reasoning": "Indian adults often internalize weight regain as personal failure, especially while navigating social family meals and high-stress desk jobs. By explaining the physiological appetite rebound and highlighting the value of sustained doctor-led care, this campaign shifts the narrative from shame to clinical credibility.",
+  "carousel": [
+    {
+      "n": 1,
+      "type": "hook",
+      "headline": "Why does the weight come *back*?",
+      "body": "It is easy to blame your willpower when old habits slip. But the science shows a different story.",
+      "kind": "brand",
+      "claimIds": [],
+      "background": "cream"
+    },
+    {
+      "n": 2,
+      "type": "point",
+      "headline": "Your body *fights* to regain.",
+      "body": "For each kilogram lost, appetite increased by approximately 100 calories daily while resting burn dropped slightly.",
+      "kind": "claim",
+      "claimIds": ["C-0001-002"],
+      "background": "cream"
+    },
+    {
+      "n": 3,
+      "type": "illustration",
+      "headline": "The evening *chai* craving.",
+      "body": "That sudden 5pm hunger at your desk is not weakness. Your biology is actively signaling for fuel after calorie deficits.",
+      "kind": "illustration",
+      "claimIds": [],
+      "background": "cream"
+    },
+    {
+      "n": 4,
+      "type": "point",
+      "headline": "Going *alone* is hard.",
+      "body": "Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+      "kind": "claim",
+      "claimIds": ["C-0001-001"],
+      "background": "maroon"
+    },
+    {
+      "n": 5,
+      "type": "point",
+      "headline": "Continuous *support* changes outcomes.",
+      "body": "Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone.",
+      "kind": "claim",
+      "claimIds": ["C-0001-003"],
+      "background": "cream"
+    },
+    {
+      "n": 6,
+      "type": "source",
+      "headline": "Backed by *medical* research.",
+      "body": "Hall & Kahan (2018). Maintenance of lost weight and long-term management of obesity. Med Clin North Am.",
+      "kind": "brand",
+      "claimIds": [],
+      "background": "cream"
+    },
+    {
+      "n": 7,
+      "type": "closing",
+      "headline": "Clinical care, *doctor-led*.",
+      "body": "Metabolic care, calibrated for Indian biology. Questions? Ask a Steer doctor. steer · steerclub.com",
+      "kind": "brand",
+      "claimIds": [],
+      "background": "cream"
+    }
+  ],
+  "static": {
+    "headline": "Weight regain is *biology*.",
+    "support": "For each kilogram lost, appetite increased by approximately 100 calories daily.",
+    "kind": "claim",
+    "claimIds": ["C-0001-002"],
+    "footnote": "Hall & Kahan (2018). Med Clin North Am. steerclub.com"
+  },
+  "reel": [
+    {
+      "n": 1,
+      "motion": "title",
+      "onScreen": "Why does the weight return?",
+      "voiceover": "Ever wonder why keeping weight off feels like an uphill battle after every diet? It is not your willpower.",
+      "kind": "brand",
+      "claimIds": [],
+      "brollQuery": "steaming black tea cup"
+    },
+    {
+      "n": 2,
+      "motion": "stat",
+      "onScreen": "Your appetite increases",
+      "voiceover": "For each kilogram lost, appetite increased by approximately 100 calories daily while resting burn dropped slightly in clinical studies.",
+      "kind": "claim",
+      "claimIds": ["C-0001-002"],
+      "brollQuery": "fresh roti on plate"
+    },
+    {
+      "n": 3,
+      "motion": "stat",
+      "onScreen": "Long-term study findings",
+      "voiceover": "Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+      "kind": "claim",
+      "claimIds": ["C-0001-001"],
+      "brollQuery": "medical journal pages open"
+    },
+    {
+      "n": 4,
+      "motion": "quote",
+      "onScreen": "Doctor support changes things",
+      "voiceover": "Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone.",
+      "kind": "claim",
+      "claimIds": ["C-0001-003"],
+      "brollQuery": "stethoscope on wooden desk"
+    },
+    {
+      "n": 5,
+      "motion": "closing",
+      "onScreen": "steer · steerclub.com",
+      "voiceover": "Metabolic care, calibrated for Indian biology. Stop Googling. Ask a doctor at steerclub.com.",
+      "kind": "brand",
+      "claimIds": [],
+      "brollQuery": "minimalist medical clinic desk"
+    }
+  ],
+  "caption": {
+    "paragraphs": [
+      {
+        "kind": "illustration",
+        "text": "Ever feel like your appetite spikes the moment you lose weight? That 4pm hunger during a busy workday is not a personal failure. It is basic biology.",
+        "claimIds": []
+      },
+      {
+        "kind": "claim",
+        "text": "Research shows that for each kilogram lost, appetite increased by approximately 100 calories daily while resting burn dropped slightly. Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+        "claimIds": ["C-0001-001", "C-0001-002"]
+      },
+      {
+        "kind": "claim",
+        "text": "Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone. Sustainable metabolic health requires a planned strategy, not crash diets.",
+        "claimIds": ["C-0001-003"]
+      },
+      {
+        "kind": "brand",
+        "text": "Clinical weight loss, doctor-led. Stop Googling. Ask a doctor. steerclub.com",
+        "claimIds": []
+      }
+    ],
+    "hashtags": [
+      "#steerclub",
+      "#metabolichealth",
+      "#weightcare",
+      "#doctorled",
+      "#healthindia",
+      "#evidencebased",
+      "#indianwellness",
+      "#metabolism",
+      "#clinicalcare"
+    ]
+  }
+}
+```
+
+---
+
+### 2. Injected Bad Asset Policy Test
+We created a test asset containing the string `"Lose 5 kg in 2 weeks, guaranteed! OZEMPIC"` and evaluated it through `PolicyChecker`:
+
+```
+=== Injected Bad Asset PolicyChecker Violations ===
+Violation: rule=DRUG_BRAND, severity=BLOCKING, location=static:headline, detail=Mention of drug brand: ozempic
+Violation: rule=PROMISE, severity=BLOCKING, location=static:headline, detail=Promise found: Lose 5 kg
+Violation: rule=PROMISE, severity=BLOCKING, location=static:headline, detail=Promise found: in 2 weeks
+Violation: rule=PROMISE, severity=BLOCKING, location=static:headline, detail=Promise found: guaranteed
+Violation: rule=HYPE, severity=BLOCKING, location=static:headline, detail=Hype phrase: guaranteed
+Violation: rule=ALL_CAPS, severity=BLOCKING, location=static:headline, detail=All-caps token: OZEMPIC
+Asset Status: BLOCKED
+```
+
+**Result**: `DRUG_BRAND`, `PROMISE`, `HYPE`, and `ALL_CAPS` all fired as `BLOCKING` violations, and the asset was correctly placed into status `BLOCKED`.
+
+---
+
+### 3. PolicyChecker Unit Test Suite
+Ran `PolicyCheckerTest` covering all 15 deterministic guardrail rules from `docs/GUARDRAILS.md`:
+```
+[INFO] Running com.steerclub.steerproof.policy.PolicyCheckerTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.666 s -- in com.steerclub.steerproof.policy.PolicyCheckerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] BUILD SUCCESS
+```
+
+Rule Coverage Verification:
+1. `DRUG_BRAND` (`testDrugBrandRule`): PASSED
+2. `DRUG_GENERIC_PROMO` (`testDrugGenericPromoRule`): PASSED
+3. `PROMISE` (`testPromiseRule`): PASSED
+4. `HYPE` (`testHypeRule`): PASSED
+5. `FEAR_SHAME` (`testFearShameRule`): PASSED
+6. `BODY` (`testBodyRule`): PASSED
+7. `ALL_CAPS` (`testAllCapsRule`): PASSED
+8. `LENGTH` (`testLengthRule`): PASSED
+9. `UNCITED_CLAIM` (`testUncitedClaimRule`): PASSED
+10. `NUMBER_MISMATCH` (`testNumberMismatchRule`): PASSED
+11. `ILLUSTRATION_WITH_NUMBER` (`testIllustrationWithNumberRule`): PASSED
+12. `CERTAINTY_ON_EXPLORATORY` (`testCertaintyOnExploratoryRule`): PASSED
+13. `CAUSAL_ON_ASSOCIATION` (`testCausalOnAssociationRule`): PASSED
+14. `MISSING_SIGNOFF` (`testMissingSignoffRule`): PASSED
+15. `EMOJI_IN_ASSET` (`testEmojiInAssetRule`): PASSED
+16. Injected Bad Asset (`testInjectedBadAssetFiresAllTargetRulesAndBlocks`): PASSED
+
