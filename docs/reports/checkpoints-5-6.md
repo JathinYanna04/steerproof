@@ -173,4 +173,100 @@ HTTP/1.1 422 Unprocessable Entity
 ```
 Result: Successfully triggered text overflow step-down loop, hit the 30px body floor, and returned `422 Unprocessable Entity` with `TEXT_OVERFLOW`.
 
+---
+
+## PART 3: REEL INPUTS IN ml-service (audio + b-roll)
+
+### 1. P-0002 Reel Audio Synthesis (`POST /reel/audio`)
+Synthesized using `edge-tts` (voice `en-IN-NeerjaNeural`, rate `-5%`, boundary `WordBoundary`), cached by `sha256(voice + rate + text)`, duration measured via `mutagen.mp3`:
+
+- **Scene 1**:
+  - Voiceover: *"The biggest question people ask doctors before starting metabolic care is whether the weight returns once treatment ends."*
+  - MP3 Path: `storage/audio/A-0002-REEL/scene-1.mp3`
+  - Duration: 8,664 ms
+  - Word count: 18 words
+  - First 5 word timings:
+    1. "The": 100 ms – 297 ms
+    2. "biggest": 311 ms – 758 ms
+    3. "question": 771 ms – 1,232 ms
+    4. "people": 1,245 ms – 1,626 ms
+    5. "ask": 1,639 ms – 1,955 ms
+
+- **Scene 2**:
+  - Voiceover: *"When weight is lost, the body triggers compensatory biological changes that often make weight regain common."*
+  - MP3 Path: `storage/audio/A-0002-REEL/scene-2.mp3`
+  - Duration: 8,184 ms
+  - Word count: 16 words
+  - First 5 word timings:
+    1. "When": 100 ms – 416 ms
+    2. "weight": 429 ms – 692 ms
+    3. "is": 705 ms – 863 ms
+    4. "lost": 876 ms – 1,376 ms
+    5. "the": 1,508 ms – 1,653 ms
+
+- **Scene 3**:
+  - Voiceover: *"In one exploratory trial, participants regained most of their lost weight over one year after stopping treatment."*
+  - MP3 Path: `storage/audio/A-0002-REEL/scene-3.mp3`
+  - Duration: 8,472 ms
+  - Word count: 17 words
+  - First 5 word timings:
+    1. "In": 100 ms – 350 ms
+    2. "one": 363 ms – 561 ms
+    3. "exploratory": 574 ms – 1,376 ms
+    4. "trial": 1,389 ms – 1,916 ms
+    5. "participants": 2,061 ms – 2,850 ms
+
+- **Scene 4**:
+  - Voiceover: *"Yet, trial data suggested that nearly half the participants still maintained at least 5% weight loss one year later."*
+  - MP3 Path: `storage/audio/A-0002-REEL/scene-4.mp3`
+  - Duration: 9,432 ms
+  - Word count: 19 words
+  - First 5 word timings:
+    1. "Yet": 100 ms – 653 ms
+    2. "trial": 797 ms – 1,192 ms
+    3. "data": 1,205 ms – 1,587 ms
+    4. "suggested": 1,600 ms – 2,311 ms
+    5. "that": 2,324 ms – 2,587 ms
+
+- **Scene 5**:
+  - Voiceover: *"Care must include a planned exit for real life. Clinical weight loss, doctor-led. steer · steerclub.com"*
+  - MP3 Path: `storage/audio/A-0002-REEL/scene-5.mp3`
+  - Duration: 10,344 ms
+  - Word count: 16 words
+  - First 5 word timings:
+    1. "Care": 100 ms – 403 ms
+    2. "must": 416 ms – 692 ms
+    3. "include": 705 ms – 1,139 ms
+    4. "a": 1,153 ms – 1,218 ms
+    5. "planned": 1,232 ms – 1,692 ms
+
+- **Overall Reel Audio**:
+  - Combined path: `storage/audio/A-0002-REEL/reel.mp3`
+  - Total duration: 45,096 ms (45.10 seconds)
+  - `timingApproximate`: `false` (exact Azure neural word boundary timestamps across all 5 scenes).
+
+### 2. Pexels B-Roll Query Processing (`POST /reel/broll`)
+- **Scene 1 Query**: `"steaming chai cup desk"` -> Status: `PEXELS_API_KEY_UNSET` -> `videoPath: null` (procedural cream background fallback).
+- **Scene 2 Query**: `"stethoscope medical clipboard"` -> Status: `PEXELS_API_KEY_UNSET` -> `videoPath: null`.
+- **Scene 3 Query**: `"calendar turning pages"` -> Status: `PEXELS_API_KEY_UNSET` -> `videoPath: null`.
+- **Scene 4 Query**: `"fresh cooked rotis bowl"` -> Status: `PEXELS_API_KEY_UNSET` -> `videoPath: null`.
+- **Scene 5 Query**: `"bright clean clinic room"` -> Status: `PEXELS_API_KEY_UNSET` -> `videoPath: null`.
+
+### 3. Denylist Test Verification
+Tested `brollQuery: "belly fat"` against `docs/GUARDRAILS.md` denylist:
+```json
+{
+  "n": 1,
+  "query": "belly fat",
+  "videoPath": null,
+  "reason": "DENYLIST",
+  "pexelsId": null,
+  "pexelsUrl": null,
+  "photographer": null,
+  "photographerUrl": null
+}
+```
+Result: Denylist correctly rejected the forbidden query with `reason: "DENYLIST"`.
+
+
 

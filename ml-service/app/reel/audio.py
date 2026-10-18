@@ -1,9 +1,10 @@
 import os
 import re
 import json
+import hashlib
+import shutil
 import asyncio
 import logging
-import subprocess
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import edge_tts
@@ -11,35 +12,58 @@ import mutagen.mp3
 
 logger = logging.getLogger("ml-service.reel.audio")
 
-DEFAULT_VOICE = "en-IN-NeerjaNeural"
+DEFAULT_VOICE = os.environ.get("TTS_VOICE_EN", "en-IN-NeerjaNeural")
 
-async def _synth_scene_with_retry(
+def _get_cache_key(voice: str, rate: str, text: str) -> str:
+    raw = f"{voice}::{rate}::{text.strip()}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+async def synth_scene(
     text: str,
     voice: str,
+    rate: str,
     out_mp3_path: Path,
-    max_retries: int = 2
-) -> tuple[bool, List[Dict[str, Any]]]:
+    out_words_path: Path,
+    cache_dir: Path
+) -> tuple[float, List[Dict[str, Any]], bool]:
     """
-    Attempts to synthesize text using edge-tts with word boundaries.
-    Retries up to max_retries.
-    Returns (success, words).
+    Synthesizes a scene with edge-tts, caching by sha256(voice + rate + text).
+    Returns (duration_sec, words, timing_approximate).
     """
-    for attempt in range(1, max_retries + 1):
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_key = _get_cache_key(voice, rate, text)
+    cached_mp3 = cache_dir / f"{cache_key}.mp3"
+    cached_words = cache_dir / f"{cache_key}.json"
+
+    # 1. Check cache
+    if cached_mp3.exists() and cached_words.exists() and cached_mp3.stat().st_size > 0:
+        logger.info(f"Cache hit for audio: {cache_key[:8]}...")
+        shutil.copy2(cached_mp3, out_mp3_path)
+        shutil.copy2(cached_words, out_words_path)
+        duration_sec = mutagen.mp3.MP3(str(out_mp3_path)).info.length
+        with open(out_words_path, "r", encoding="utf-8") as f:
+            words_data = json.load(f)
+        return duration_sec, words_data.get("words", []), words_data.get("timingApproximate", False)
+
+    # 2. Synthesize with edge-tts
+    words: List[Dict[str, Any]] = []
+    audio_bytes = bytearray()
+    success = False
+
+    for attempt in range(1, 3):
         try:
-            logger.info(f"Synthesizing audio (attempt {attempt}/{max_retries}) for text: {text[:50]}...")
+            logger.info(f"edge-tts attempt {attempt} for: {text[:40]}...")
             comm = edge_tts.Communicate(
                 text=text,
                 voice=voice,
-                rate="-5%",
+                rate=rate,
                 boundary="WordBoundary"
             )
-            words = []
-            audio_bytes = bytearray()
             async for chunk in comm.stream():
                 if chunk["type"] == "audio":
                     audio_bytes.extend(chunk["data"])
                 elif chunk["type"] == "WordBoundary":
-                    # offset is in 100-nanosecond units (ticks) -> / 10000 = milliseconds
+                    # 100-ns ticks -> ms
                     start_ms = round(chunk["offset"] / 10000)
                     end_ms = round((chunk["offset"] + chunk["duration"]) / 10000)
                     words.append({
@@ -48,86 +72,117 @@ async def _synth_scene_with_retry(
                         "endMs": end_ms
                     })
             if len(audio_bytes) > 0:
-                with open(out_mp3_path, "wb") as f:
-                    f.write(audio_bytes)
-                return True, words
+                success = True
+                break
         except Exception as e:
-            logger.warning(f"edge-tts attempt {attempt} failed: {e}")
+            logger.warning(f"edge-tts attempt {attempt} error: {e}")
             await asyncio.sleep(0.5)
 
-    return False, []
+    timing_approximate = False
 
-def _generate_fallback_audio(
-    text: str,
-    out_mp3_path: Path
-) -> tuple[float, List[Dict[str, Any]]]:
-    """
-    Fallback if edge-tts fails after 2 attempts:
-    Generates a dummy silent MP3 using ffmpeg and estimates word timestamps
-    at an average reading rate (~140 wpm = 430 ms/word).
-    """
-    logger.warning(f"Generating fallback dummy-timestamped audio for {out_mp3_path.name}")
-    tokens = re.findall(r"\S+", text)
-    if not tokens:
-        tokens = ["Silence"]
-    
-    ms_per_word = 430
-    words = []
-    current_ms = 200
-    for token in tokens:
-        start_ms = current_ms
-        end_ms = current_ms + ms_per_word - 50
-        words.append({
-            "text": token,
-            "startMs": start_ms,
-            "endMs": end_ms
-        })
-        current_ms += ms_per_word
-    
-    total_duration_sec = (current_ms + 200) / 1000.0
-    # Generate silent mp3 with ffmpeg
-    subprocess.run([
-        "ffmpeg", "-y", "-f", "lavfi", "-i", f"anullsrc=r=24000:cl=mono",
-        "-t", str(total_duration_sec), "-q:a", "9", "-acodec", "libmp3lame",
-        str(out_mp3_path)
-    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    if success and len(audio_bytes) > 0:
+        with open(out_mp3_path, "wb") as f:
+            f.write(audio_bytes)
+        duration_sec = mutagen.mp3.MP3(str(out_mp3_path)).info.length
 
-    return total_duration_sec, words
+        # If word boundaries came back empty, distribute words evenly
+        if len(words) == 0:
+            logger.warning("Word boundaries empty. Falling back to even distribution.")
+            tokens = re.findall(r"\S+", text)
+            if tokens:
+                timing_approximate = True
+                total_ms = duration_sec * 1000
+                ms_per_word = total_ms / len(tokens)
+                for idx, tok in enumerate(tokens):
+                    words.append({
+                        "text": tok,
+                        "startMs": round(idx * ms_per_word),
+                        "endMs": round((idx + 1) * ms_per_word)
+                    })
+    else:
+        # Fallback silent audio if edge-tts completely failed
+        logger.warning(f"edge-tts failed twice. Generating silent fallback audio.")
+        timing_approximate = True
+        tokens = re.findall(r"\S+", text) or ["silence"]
+        ms_per_word = 400
+        words = []
+        for idx, tok in enumerate(tokens):
+            words.append({
+                "text": tok,
+                "startMs": idx * ms_per_word,
+                "endMs": (idx + 1) * ms_per_word
+            })
+        duration_sec = (len(tokens) * ms_per_word) / 1000.0
+        import subprocess
+        subprocess.run([
+            "ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono",
+            "-t", str(duration_sec), "-acodec", "libmp3lame", str(out_mp3_path)
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+    # Save words json
+    with open(out_words_path, "w", encoding="utf-8") as f:
+        json.dump({"timingApproximate": timing_approximate, "words": words}, f, indent=2)
+
+    # Save to cache
+    try:
+        shutil.copy2(out_mp3_path, cached_mp3)
+        shutil.copy2(out_words_path, cached_words)
+    except Exception as e:
+        logger.warning(f"Could not cache synthesized audio: {e}")
+
+    return duration_sec, words, timing_approximate
 
 async def generate_reel_audio(
-    paper_id: str,
+    asset_id: str,
     scenes: List[Dict[str, Any]],
     storage_dir: Path,
-    voice: str = DEFAULT_VOICE
+    voice: Optional[str] = None,
+    language: str = "en"
 ) -> Dict[str, Any]:
     """
-    Synthesizes audio for each scene in the reel and combines into storage/audio/{paper_id}-reel.mp3.
-    Returns scene audio info and word timestamps.
+    Synthesizes reel audio per scene into storage/audio/{asset_id}/scene-{n}.mp3
+    and scene-{n}.words.json, and produces combined storage/audio/{asset_id}/reel.mp3.
     """
-    audio_dir = storage_dir / "audio"
+    target_voice = voice or os.environ.get("TTS_VOICE_EN", DEFAULT_VOICE)
+    rate = "-5%"
+
+    audio_dir = storage_dir / "audio" / asset_id
     audio_dir.mkdir(parents=True, exist_ok=True)
+    cache_dir = storage_dir / "audio" / ".cache"
 
     scene_results = []
     scene_mp3_paths = []
-    
+    overall_timing_approximate = False
+
     for sc in scenes:
         scene_num = sc.get("n", 1)
         voiceover = sc.get("voiceover", "").strip()
-        scene_mp3 = audio_dir / f"{paper_id}-scene-{scene_num}.mp3"
-        
-        success, words = await _synth_scene_with_retry(voiceover, voice, scene_mp3, max_retries=2)
-        if success and scene_mp3.exists():
-            duration_sec = mutagen.mp3.MP3(str(scene_mp3)).info.length
-        else:
-            duration_sec, words = _generate_fallback_audio(voiceover, scene_mp3)
+        out_mp3 = audio_dir / f"scene-{scene_num}.mp3"
+        out_words = audio_dir / f"scene-{scene_num}.words.json"
 
-        duration_ms = round(duration_sec * 1000)
-        scene_mp3_paths.append(scene_mp3)
+        dur_sec, words, approx = await synth_scene(
+            text=voiceover,
+            voice=target_voice,
+            rate=rate,
+            out_mp3_path=out_mp3,
+            out_words_path=out_words,
+            cache_dir=cache_dir
+        )
+
+        if approx:
+            overall_timing_approximate = True
+
+        dur_ms = round(dur_sec * 1000)
+        scene_mp3_paths.append(out_mp3)
+
         scene_results.append({
             "n": scene_num,
-            "audioPath": f"audio/{scene_mp3.name}",
-            "durationMs": duration_ms,
+            "voiceover": voiceover,
+            "mp3Path": f"audio/{asset_id}/scene-{scene_num}.mp3",
+            "durationMs": dur_ms,
+            "wordCount": len(words),
             "words": words,
+            "timingApproximate": approx,
             "onScreen": sc.get("onScreen", ""),
             "motion": sc.get("motion", "title"),
             "kind": sc.get("kind", "brand"),
@@ -135,28 +190,29 @@ async def generate_reel_audio(
             "brollQuery": sc.get("brollQuery", "")
         })
 
-    # Combine all scenes into single storage/audio/{paper_id}-reel.mp3 using ffmpeg concat
-    combined_mp3 = audio_dir / f"{paper_id}-reel.mp3"
-    concat_list_file = audio_dir / f"{paper_id}-concat.txt"
-    with open(concat_list_file, "w") as f:
+    # Concatenate all scene mp3s into reel.mp3
+    combined_mp3 = audio_dir / "reel.mp3"
+    concat_txt = audio_dir / "concat.txt"
+    with open(concat_txt, "w") as f:
         for p in scene_mp3_paths:
             f.write(f"file '{p.resolve()}'\n")
 
+    import subprocess
     try:
         subprocess.run([
             "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-            "-i", str(concat_list_file),
+            "-i", str(concat_txt),
             "-c", "copy",
             str(combined_mp3)
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
     finally:
-        if concat_list_file.exists():
-            concat_list_file.unlink()
+        if concat_txt.exists():
+            concat_txt.unlink()
 
-    total_duration_sec = mutagen.mp3.MP3(str(combined_mp3)).info.length
-    total_duration_ms = round(total_duration_sec * 1000)
+    total_dur_sec = mutagen.mp3.MP3(str(combined_mp3)).info.length
+    total_dur_ms = round(total_dur_sec * 1000)
 
-    # Compute continuous overall words across the entire reel
+    # Also build overall continuous words across reel
     overall_words = []
     offset_ms = 0
     for sc in scene_results:
@@ -169,14 +225,11 @@ async def generate_reel_audio(
             })
         offset_ms += sc["durationMs"]
 
-    # Save words JSON
-    words_json_path = audio_dir / f"{paper_id}-words.json"
-    with open(words_json_path, "w") as f:
-        json.dump(overall_words, f, indent=2)
-
     return {
-        "audioPath": f"audio/{combined_mp3.name}",
-        "totalDurationMs": total_duration_ms,
+        "assetId": asset_id,
+        "audioPath": f"audio/{asset_id}/reel.mp3",
+        "totalDurationMs": total_dur_ms,
+        "timingApproximate": overall_timing_approximate,
         "words": overall_words,
         "scenes": scene_results
     }

@@ -193,15 +193,21 @@ class ReelAudioSceneInput(BaseModel):
     brollQuery: Optional[str] = ""
 
 class ReelAudioRequest(BaseModel):
-    paperId: str
+    assetId: Optional[str] = None
+    paperId: Optional[str] = None
     scenes: list[ReelAudioSceneInput]
     voice: Optional[str] = "en-IN-NeerjaNeural"
+    language: Optional[str] = "en"
 
 class ReelAudioSceneResult(BaseModel):
     n: int
-    audioPath: str
+    voiceover: Optional[str] = ""
+    audioPath: Optional[str] = None
+    mp3Path: Optional[str] = None
     durationMs: int
+    wordCount: int = 0
     words: list[dict]
+    timingApproximate: bool = False
     onScreen: str = ""
     motion: str = "title"
     kind: str = "brand"
@@ -209,29 +215,34 @@ class ReelAudioSceneResult(BaseModel):
     brollQuery: str = ""
 
 class ReelAudioResponse(BaseModel):
+    assetId: Optional[str] = None
     audioPath: str
     totalDurationMs: int
+    timingApproximate: bool = False
     words: list[dict]
     scenes: list[ReelAudioSceneResult]
 
 class ReelBrollSceneInput(BaseModel):
     n: int
     brollQuery: str
-    durationMs: Optional[int] = 4000
+    minSeconds: Optional[float] = 4.0
+    durationMs: Optional[int] = None
 
 class ReelBrollRequest(BaseModel):
-    paperId: str
+    assetId: Optional[str] = None
+    paperId: Optional[str] = None
     scenes: list[ReelBrollSceneInput]
     apiKey: Optional[str] = None
 
 class ReelBrollResult(BaseModel):
     n: int
     query: str
-    allowed: bool
-    deniedReason: Optional[str] = None
     videoPath: Optional[str] = None
+    reason: Optional[str] = None
+    pexelsId: Optional[str] = None
+    pexelsUrl: Optional[str] = None
     photographer: Optional[str] = None
-    url: Optional[str] = None
+    photographerUrl: Optional[str] = None
 
 class ReelBrollResponse(BaseModel):
     results: list[ReelBrollResult]

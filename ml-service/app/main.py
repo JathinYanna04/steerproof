@@ -179,11 +179,13 @@ async def reel_audio_endpoint(req: ReelAudioRequest):
         from app.reel.audio import generate_reel_audio
         scenes_data = [s.model_dump() for s in req.scenes]
         voice = req.voice or "en-IN-NeerjaNeural"
+        target_id = req.assetId or req.paperId or "reel"
         res = await generate_reel_audio(
-            paper_id=req.paperId,
+            asset_id=target_id,
             scenes=scenes_data,
             storage_dir=settings.storage_dir,
-            voice=voice
+            voice=voice,
+            language=req.language or "en"
         )
         return ReelAudioResponse(**res)
     except Exception as e:
@@ -196,7 +198,6 @@ async def reel_broll_endpoint(req: ReelBrollRequest):
         from app.reel.broll import process_reel_broll
         scenes_data = [s.model_dump() for s in req.scenes]
         results = process_reel_broll(
-            paper_id=req.paperId,
             scenes=scenes_data,
             storage_dir=settings.storage_dir,
             api_key=req.apiKey
