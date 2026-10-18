@@ -9,5 +9,6 @@ import java.util.List;
 public interface AssetClaimRepository extends JpaRepository<AssetClaimEntity, AssetClaimId> {
     List<AssetClaimEntity> findByAssetId(String assetId);
     List<AssetClaimEntity> findByClaimId(String claimId);
+    @org.springframework.transaction.annotation.Transactional
     void deleteByAssetId(String assetId);
 }

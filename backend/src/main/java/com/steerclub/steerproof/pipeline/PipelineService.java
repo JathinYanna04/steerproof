@@ -48,6 +48,7 @@ public class PipelineService {
     private final PolicyViolationRepository policyViolationRepository;
     private final HumanEventRepository humanEventRepository;
     private final PolicyChecker policyChecker;
+    private final RenderServiceClient renderServiceClient;
 
     public PipelineService(
             PaperRepository paperRepository,
@@ -62,7 +63,8 @@ public class PipelineService {
             AssetClaimRepository assetClaimRepository,
             PolicyViolationRepository policyViolationRepository,
             HumanEventRepository humanEventRepository,
-            PolicyChecker policyChecker
+            PolicyChecker policyChecker,
+            RenderServiceClient renderServiceClient
     ) {
         this.paperRepository = paperRepository;
         this.passageRepository = passageRepository;
@@ -77,9 +79,11 @@ public class PipelineService {
         this.policyViolationRepository = policyViolationRepository;
         this.humanEventRepository = humanEventRepository;
         this.policyChecker = policyChecker;
+        this.renderServiceClient = renderServiceClient;
     }
 
     @Async
+    @Transactional
     public void runPipeline(String paperId) {
         Optional<PaperEntity> opt = paperRepository.findById(paperId);
         if (opt.isEmpty()) {
@@ -429,6 +433,62 @@ public class PipelineService {
                 paper.setError(null);
                 paperRepository.save(paper);
                 auditService.log("system", "STATUS_CHANGE", "paper", paperId, prevStatus, PaperStatus.RENDERING);
+            }
+
+            // Stage 5: RENDER
+            if (paper.getStatus() == PaperStatus.RENDERING) {
+                currentStage = "RENDER";
+                stageStart = Instant.now();
+                PipelineRunEntity run = new PipelineRunEntity(paperId, "RENDER", stageStart);
+
+                String citation = (paper.getAuthors() != null ? paper.getAuthors() : "Authors") + " (" + (paper.getYear() != null ? paper.getYear() : 2018) + ")";
+
+                // 1. Render Carousel
+                String carId = idGenerator.assetId(paperId, AssetType.CAROUSEL);
+                Optional<AssetEntity> carOpt = assetRepository.findById(carId);
+                if (carOpt.isPresent()) {
+                    AssetEntity carAsset = carOpt.get();
+                    JsonNode carContent = objectMapper.readTree(carAsset.getContent());
+                    JsonNode slidesNode = carContent.has("slides") ? carContent.get("slides") : carContent;
+                    if (slidesNode != null && slidesNode.isArray()) {
+                        List<Map<String, Object>> slidesList = objectMapper.convertValue(slidesNode, new TypeReference<List<Map<String, Object>>>() {});
+                        boolean isDraft = carAsset.getStatus() != AssetStatus.APPROVED;
+                        RenderServiceClient.RenderResult res = renderServiceClient.renderCarousel(paperId, slidesList, citation, isDraft);
+                        carAsset.setRenderPaths(objectMapper.writeValueAsString(res.paths()));
+                        if (carAsset.getStatus() == AssetStatus.DRAFT) {
+                            carAsset.setStatus(AssetStatus.RENDERED);
+                        }
+                        assetRepository.save(carAsset);
+                    }
+                }
+
+                // 2. Render Static
+                String staId = idGenerator.assetId(paperId, AssetType.STATIC);
+                Optional<AssetEntity> staOpt = assetRepository.findById(staId);
+                if (staOpt.isPresent()) {
+                    AssetEntity staAsset = staOpt.get();
+                    Map<String, Object> staContent = objectMapper.readValue(staAsset.getContent(), new TypeReference<Map<String, Object>>() {});
+                    boolean isDraft = staAsset.getStatus() != AssetStatus.APPROVED;
+                    RenderServiceClient.RenderResult res = renderServiceClient.renderStatic(paperId, staContent, citation, isDraft);
+                    staAsset.setRenderPaths(objectMapper.writeValueAsString(res.paths()));
+                    if (staAsset.getStatus() == AssetStatus.DRAFT) {
+                        staAsset.setStatus(AssetStatus.RENDERED);
+                    }
+                    assetRepository.save(staAsset);
+                }
+
+                run.setEndedAt(Instant.now());
+                run.setOk(true);
+                run.setLlmCalls(0);
+                run.setCacheHits(0);
+                pipelineRunRepository.save(run);
+
+                PaperStatus prevStatus = paper.getStatus();
+                paper.setStatus(PaperStatus.AWAITING_ASSET_REVIEW);
+                paper.setFailedStage(null);
+                paper.setError(null);
+                paperRepository.save(paper);
+                auditService.log("system", "STATUS_CHANGE", "paper", paperId, prevStatus, PaperStatus.AWAITING_ASSET_REVIEW);
             }
 
         } catch (Exception e) {

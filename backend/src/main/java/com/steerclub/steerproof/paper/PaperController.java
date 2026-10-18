@@ -187,6 +187,8 @@ public class PaperController {
             paper.setStatus(PaperStatus.VERIFYING);
         } else if ("WRITE".equalsIgnoreCase(failedStage)) {
             paper.setStatus(PaperStatus.WRITING);
+        } else if ("RENDER".equalsIgnoreCase(failedStage)) {
+            paper.setStatus(PaperStatus.RENDERING);
         } else {
             paper.setStatus(PaperStatus.PARSING);
         }

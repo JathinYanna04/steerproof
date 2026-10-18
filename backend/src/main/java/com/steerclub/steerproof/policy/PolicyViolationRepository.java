@@ -8,5 +8,6 @@ import java.util.List;
 @Repository
 public interface PolicyViolationRepository extends JpaRepository<PolicyViolationEntity, Long> {
     List<PolicyViolationEntity> findByAssetId(String assetId);
+    @org.springframework.transaction.annotation.Transactional
     void deleteByAssetId(String assetId);
 }

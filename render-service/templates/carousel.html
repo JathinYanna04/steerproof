@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Steer Carousel Slide</title>
+  <link rel="stylesheet" href="base.css">
+</head>
+<body>
+  <div id="root" class="canvas"></div>
+
+  <script>
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatHeadline(str) {
+      if (!str) return '';
+      return escapeHtml(str).replace(/\*(.+?)\*/g, '<em class="accent">$1</em>');
+    }
+
+    function renderSlide(data) {
+      const slide = data.slide || {};
+      const n = slide.n || 1;
+      const total = data.totalSlides || 7;
+      const isMaroon = slide.background === 'maroon';
+      const isDraft = data.draft !== false;
+
+      if (isMaroon) {
+        document.body.classList.add('bg-maroon');
+      } else {
+        document.body.classList.remove('bg-maroon');
+      }
+
+      const root = document.getElementById('root');
+      let contentHtml = '';
+
+      const padNum = n < 10 ? '0' + n : n;
+      const topLabel = `<div class="label-top" data-block-id="slide${n}.label">${padNum} / steer notes</div>`;
+
+      if (slide.type === 'hook') {
+        contentHtml = `
+          <div>
+            ${topLabel}
+            <div class="handwritten">a doctor explains &rarr;</div>
+            <h1 class="headline large-hook" data-block-id="slide${n}.headline">${formatHeadline(slide.headline)}</h1>
+            ${slide.body ? `<p class="body-text" data-block-id="slide${n}.body">${escapeHtml(slide.body)}</p>` : ''}
+          </div>
+        `;
+      } else if (slide.type === 'illustration') {
+        contentHtml = `
+          <div>
+            ${topLabel}
+            <h2 class="headline" data-block-id="slide${n}.headline">${formatHeadline(slide.headline)}</h2>
+            <div class="card" data-block-id="slide${n}.body">
+              <div class="handwritten">an everyday example</div>
+              <p class="body-text">${escapeHtml(slide.body)}</p>
+            </div>
+          </div>
+        `;
+      } else if (slide.type === 'source') {
+        contentHtml = `
+          <div>
+            ${topLabel}
+            <h2 class="headline" data-block-id="slide${n}.headline">${formatHeadline(slide.headline)}</h2>
+            <div class="card" data-block-id="slide${n}.body">
+              <div class="label-top" style="margin-bottom: 16px;">original evidence</div>
+              <p class="body-text" style="font-size: 30px; margin-bottom: 24px;">${escapeHtml(slide.body)}</p>
+              <div class="citation-line">${isDraft ? 'Pending doctor review' : 'Reviewed by a Steer doctor'}</div>
+            </div>
+          </div>
+        `;
+      } else if (slide.type === 'closing') {
+        contentHtml = `
+          <div>
+            ${topLabel}
+            <h2 class="headline" data-block-id="slide${n}.headline">${formatHeadline(slide.headline)}</h2>
+            <p class="body-text" data-block-id="slide${n}.body" style="margin-top: 32px;">${escapeHtml(slide.body)}</p>
+          </div>
+        `;
+      } else {
+        // Point
+        contentHtml = `
+          <div>
+            ${topLabel}
+            <h2 class="headline" data-block-id="slide${n}.headline">${formatHeadline(slide.headline)}</h2>
+            <p class="body-text" data-block-id="slide${n}.body">${escapeHtml(slide.body)}</p>
+          </div>
+        `;
+      }
+
+      const footerHtml = `
+        <div class="footer" data-block-id="slide${n}.footer">
+          <div class="footer-brand">steer</div>
+          <div class="footer-url">steerclub.com</div>
+        </div>
+      `;
+
+      let watermarkHtml = '';
+      if (isDraft) {
+        watermarkHtml = '<div class="watermark">draft &middot; pending doctor review</div>';
+      }
+
+      root.innerHTML = watermarkHtml + contentHtml + footerHtml;
+    }
+
+    if (window.__DATA__) {
+      renderSlide(window.__DATA__);
+    }
+  </script>
+</body>
+</html>

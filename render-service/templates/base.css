@@ -1,0 +1,185 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --cream: #FBF8F3;
+  --rust: #C04E2A;
+  --maroon: #3D141A;
+  --ink: #351D1D;
+  --clay: #B58777;
+  --blush: #E6CBBD;
+  --soft-paper: #F8F2EB;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  background-color: var(--cream);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+.canvas {
+  width: 1080px;
+  height: 1350px;
+  position: relative;
+  padding: 120px 96px 140px 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Background variants */
+body.bg-maroon {
+  background-color: var(--maroon);
+  color: var(--cream);
+}
+
+body.bg-maroon .headline {
+  color: var(--cream);
+}
+
+body.bg-maroon .headline em.accent {
+  color: var(--blush);
+}
+
+body.bg-maroon .body-text {
+  color: var(--cream);
+}
+
+body.bg-maroon .label-top {
+  color: var(--blush);
+}
+
+body.bg-maroon .footer-brand {
+  color: var(--cream);
+}
+
+body.bg-maroon .footer-url {
+  color: var(--blush);
+}
+
+body.bg-maroon .card {
+  background-color: rgba(251, 248, 243, 0.1);
+  border-color: rgba(230, 203, 189, 0.3);
+  color: var(--cream);
+}
+
+/* Typography */
+.headline {
+  font-family: 'Instrument Serif', serif;
+  font-size: 88px;
+  line-height: 1.05;
+  color: var(--ink);
+  font-weight: 400;
+  margin-bottom: 24px;
+}
+
+.headline.large-hook {
+  font-size: 96px;
+  line-height: 1.02;
+}
+
+.headline em.accent {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  color: var(--rust);
+}
+
+.body-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  line-height: 1.4;
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.label-top {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--clay);
+  letter-spacing: 0.05em;
+  margin-bottom: 40px;
+  text-transform: lowercase;
+}
+
+.handwritten {
+  font-family: 'Caveat', cursive;
+  font-size: 32px;
+  color: var(--rust);
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.card {
+  background-color: var(--soft-paper);
+  border: 1px solid var(--blush);
+  border-radius: 24px;
+  padding: 48px;
+  margin-top: 32px;
+}
+
+.stat-callout {
+  font-family: 'Instrument Serif', serif;
+  font-size: 150px;
+  line-height: 0.9;
+  color: var(--rust);
+  margin-bottom: 24px;
+}
+
+/* Footer */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.footer-brand {
+  font-family: 'Instrument Serif', serif;
+  font-size: 44px;
+  color: var(--rust);
+  line-height: 1;
+}
+
+.footer-url {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px;
+  color: var(--clay);
+  font-weight: 500;
+}
+
+.citation-line {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px;
+  color: var(--clay);
+  line-height: 1.4;
+  margin-top: 24px;
+}
+
+/* Watermark */
+.watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-35deg);
+  font-family: 'Inter', sans-serif;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: var(--clay);
+  opacity: 0.14;
+  pointer-events: none;
+  white-space: nowrap;
+  text-transform: lowercase;
+  z-index: 999;
+}

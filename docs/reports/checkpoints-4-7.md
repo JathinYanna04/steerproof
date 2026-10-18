@@ -286,3 +286,114 @@ Rule Coverage Verification:
 15. `EMOJI_IN_ASSET` (`testEmojiInAssetRule`): PASSED
 16. Injected Bad Asset (`testInjectedBadAssetFiresAllTargetRulesAndBlocks`): PASSED
 
+---
+
+## SECTION C: CHECKPOINT 5, CAROUSEL + STATIC
+
+### 1. Generated Render File Paths
+Rendered at 1080×1350 via Playwright using Chromium (`/usr/bin/chromium`), custom Google web fonts, Steer brand design tokens, and diagonal draft watermark:
+- `storage/renders/P-0001/carousel/1.png` (Hook slide: "Why does the weight come *back*?", cream background `#FBF8F3`)
+- `storage/renders/P-0001/carousel/2.png` (Point slide: "Your body *fights* to regain.", cream background `#FBF8F3`)
+- `storage/renders/P-0001/carousel/3.png` (Illustration slide: "The evening *chai* craving.", cream background `#FBF8F3`)
+- `storage/renders/P-0001/carousel/4.png` (Point slide: "Going *alone* is hard.", maroon background `#3D141A`, blush text `#E6CBBD`)
+- `storage/renders/P-0001/carousel/5.png` (Point slide: "Continuous *support* changes outcomes.", cream background `#FBF8F3`)
+- `storage/renders/P-0001/carousel/6.png` (Source slide: "Backed by *medical* research.", cream background `#FBF8F3`)
+- `storage/renders/P-0001/carousel/7.png` (Closing slide: "Clinical care, *doctor-led*.", steer · steerclub.com signoff)
+- `storage/renders/P-0001/static.png` (1080×1350 single-image quote card: "Weight regain is *biology*.")
+
+### 2. Block Bounding Box JSON
+
+#### Slide 2 (`renders/P-0001/carousel/2.png`):
+```json
+[
+  {
+    "slide": 2,
+    "blockId": "slide2.label",
+    "x": 96,
+    "y": 120,
+    "w": 888,
+    "h": 29
+  },
+  {
+    "slide": 2,
+    "blockId": "slide2.headline",
+    "x": 96,
+    "y": 189,
+    "w": 888,
+    "h": 92
+  },
+  {
+    "slide": 2,
+    "blockId": "slide2.body",
+    "x": 96,
+    "y": 305,
+    "w": 888,
+    "h": 151
+  },
+  {
+    "slide": 2,
+    "blockId": "slide2.footer",
+    "x": 96,
+    "y": 1166,
+    "w": 888,
+    "h": 44
+  }
+]
+```
+
+#### Static (`renders/P-0001/static.png`):
+```json
+[
+  {
+    "blockId": "static.label",
+    "x": 96,
+    "y": 120,
+    "w": 888,
+    "h": 29
+  },
+  {
+    "blockId": "static.headline",
+    "x": 96,
+    "y": 189,
+    "w": 888,
+    "h": 97
+  },
+  {
+    "blockId": "static.support",
+    "x": 96,
+    "y": 326,
+    "w": 888,
+    "h": 204
+  },
+  {
+    "blockId": "static.footnote",
+    "x": 96,
+    "y": 562,
+    "w": 888,
+    "h": 31
+  },
+  {
+    "blockId": "static.footer",
+    "x": 96,
+    "y": 1166,
+    "w": 888,
+    "h": 44
+  }
+]
+```
+
+### 3. Visual Check Confirmation
+- **Watermark**: Fixed diagonal watermark `draft · pending doctor review` clearly visible across the viewport at subtle opacity (4.5%), rotated -28deg, repeating, pointer-events none.
+- **Typography**:
+  - `Instrument Serif` (regular and italic) for editorial headlines with asterisks rendered as elegant italic accents (`<em>`).
+  - `Inter` (regular, medium, bold) for clean, readable body text and category pill labels.
+  - `Caveat` handwriting script for warm handwritten margin callouts (`.handwritten`).
+- **Color Palettes**:
+  - Cream palette (`background: #FBF8F3`, primary text `#3D141A`, secondary text `#6E5D57`, accents `#C04E2A`) on slides 1, 2, 3, 5, 6, 7 and static.
+  - Maroon palette (`background: #3D141A`, primary text `#FBF8F3`, secondary text `#E6CBBD`, card `#4E1A22`) on slide 4 for contrast and visual rhythm.
+- **Signoff & Footnotes**:
+  - `steer · steerclub.com` branding and paper citation (`Hall & Kahan (2018)`) positioned at footer on slide 7 and static.
+- **Pipeline Integration**:
+  - Pipeline Stage 5 `RENDER` automatically calls `RenderServiceClient`, saving paths to `assets.render_paths` in PostgreSQL and transitioning paper status to `AWAITING_ASSET_REVIEW`.
+
+

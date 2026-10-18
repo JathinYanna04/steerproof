@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Steer Static Post</title>
+  <link rel="stylesheet" href="base.css">
+</head>
+<body>
+  <div id="root" class="canvas"></div>
+
+  <script>
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatHeadline(str) {
+      if (!str) return '';
+      return escapeHtml(str).replace(/\*(.+?)\*/g, '<em class="accent">$1</em>');
+    }
+
+    function renderStatic(data) {
+      const content = data.static || {};
+      const isDraft = data.draft !== false;
+      const root = document.getElementById('root');
+
+      const topLabel = `<div class="label-top" data-block-id="static.label">steer medical notes</div>`;
+      const headlineHtml = `<h1 class="headline" data-block-id="static.headline" style="font-size: 92px; margin-top: 40px; margin-bottom: 40px;">${formatHeadline(content.headline)}</h1>`;
+      const supportHtml = `<div class="card" data-block-id="static.support"><p class="body-text" style="font-size: 38px;">${escapeHtml(content.support)}</p></div>`;
+      const footnoteHtml = content.footnote ? `<div class="citation-line" data-block-id="static.footnote" style="margin-top: 32px;">${escapeHtml(content.footnote)}</div>` : '';
+
+      const footerHtml = `
+        <div class="footer" data-block-id="static.footer">
+          <div class="footer-brand">steer</div>
+          <div class="footer-url">steerclub.com</div>
+        </div>
+      `;
+
+      let watermarkHtml = '';
+      if (isDraft) {
+        watermarkHtml = '<div class="watermark">draft &middot; pending doctor review</div>';
+      }
+
+      root.innerHTML = watermarkHtml + `<div>${topLabel}${headlineHtml}${supportHtml}${footnoteHtml}</div>` + footerHtml;
+    }
+
+    if (window.__DATA__) {
+      renderStatic(window.__DATA__);
+    }
+  </script>
+</body>
+</html>
