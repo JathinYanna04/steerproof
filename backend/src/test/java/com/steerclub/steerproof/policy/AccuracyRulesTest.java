@@ -246,9 +246,9 @@ class AccuracyRulesTest {
         Mockito.verify(ml, Mockito.times(1)).checkIllustrations(anyString(), anyList());
         List<PolicyChecker.ViolationResult> v = checker.checkAsset("A-T", "CAROUSEL", om.valueToTree(car), claims(), f);
         List<PolicyChecker.ViolationResult> facts = v.stream().filter(x -> "ILLUSTRATION_STATES_FACT".equals(x.rule())).toList();
-        assertEquals(1, facts.size());
-        assertEquals("slide:3", facts.get(0).location());
-        assertEquals(Severity.BLOCKING, facts.get(0).severity());
+        assertEquals(Set.of("slide:3"), facts.stream().map(PolicyChecker.ViolationResult::location).collect(java.util.stream.Collectors.toSet()));
+        assertTrue(facts.stream().anyMatch(x -> x.detail().contains("biology signals for fuel")), "Gemini verdict recorded");
+        assertTrue(facts.stream().allMatch(x -> x.severity() == Severity.BLOCKING));
     }
 
     @Test
@@ -340,5 +340,24 @@ class AccuracyRulesTest {
         assertFalse(bm.containsKey("slide4.stat"));
         assertEquals("brand", ((Map<?, ?>) bm.get("slide2.label")).get("kind"));
         assertEquals("brand", ((Map<?, ?>) bm.get("slide2.footer")).get("kind"));
+    }
+
+    @Test
+    void qualifierPhrasesWithDescriptorsAndReportingHeadings() {
+        assertTrue(PolicyChecker.hasQualifier("In one clinical follow-up trial, participants regained most of their weight."));
+        assertTrue(PolicyChecker.hasQualifier("In one exploratory trial, weight returned."));
+        assertFalse(PolicyChecker.hasQualifier("Yet, trial data showed nearly half kept it off."));
+        assertFalse(PolicyChecker.isFactual("What one *trial* showed after stopping."));
+        assertTrue(PolicyChecker.isFactual("Weight regain is about *biology*."));
+    }
+
+    @Test
+    void illustrationFactKeywordBackstopWithoutLlm() {
+        Map<String, Object> car = new LinkedHashMap<>();
+        car.put("slides", List.of(
+                slide(3, "illustration", "illustration", List.of(), "The evening *chai* craving.", FACT_SENTENCE),
+                slide(4, "illustration", "illustration", List.of(), "The *4pm* chai", "Biscuits arrive at every meeting.")));
+        List<PolicyChecker.ViolationResult> v = check(AssetType.CAROUSEL, car, claims());
+        assertEquals(List.of("slide:3"), v.stream().filter(x -> "ILLUSTRATION_STATES_FACT".equals(x.rule())).map(PolicyChecker.ViolationResult::location).toList());
     }
 }

@@ -16,15 +16,20 @@ QUALIFIERS = [
     "may", "might",
     "on average",
 ]
-_QUALIFIER_RE = re.compile(r"\b(?:" + "|".join(re.escape(q) for q in QUALIFIERS) + r")\b", re.IGNORECASE)
+_QUALIFIER_RE = re.compile(
+    r"\b(?:" + "|".join(re.escape(q) for q in QUALIFIERS) + r")\b"
+    # "in one clinical follow-up trial", "in this extension study", "in the exploratory analysis"
+    r"|\bin (?:this|one|the|a) (?:[\w-]+ ){0,2}(?:trial|study|follow-up|extension|analysis)\b",
+    re.IGNORECASE,
+)
 
 # A heading is "factual" if it carries a number, a quantity word or a finding verb.
 _NUMBER_WORDS = r"half|most|majority|nearly|almost|percent|quarter|third|twice|double|fewer|more than|less than"
 _FINDING_VERBS = (
     r"regain(?:ed|s)?|maintain(?:ed|s)?|kept|keep|lost|lose|losing|gain(?:ed|s)?|increas(?:ed|es|e)|"
     r"decreas(?:ed|es|e)|reduc(?:ed|es|e)|rose|rises?|fell|falls?|dropped|drops?|improv(?:ed|es|e)|"
-    r"lower(?:ed|s)?|rais(?:ed|es|e)|return(?:ed|s)?|worsen(?:ed|s)?|declin(?:ed|es|e)|show(?:ed|s)?|"
-    r"found|led|cause[sd]?|triggers?|triggered|stay(?:ed|s)?|came back|comes back"
+    r"lower(?:ed|s)?|rais(?:ed|es|e)|return(?:ed|s)?|worsen(?:ed|s)?|declin(?:ed|es|e)|"
+    r"led|cause[sd]?|triggers?|triggered|stay(?:ed|s)?|came back|comes back"
 )
 _FACTUAL_RE = re.compile(r"\d|\b(?:" + _NUMBER_WORDS + r"|" + _FINDING_VERBS + r")\b", re.IGNORECASE)
 

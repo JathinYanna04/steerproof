@@ -1,0 +1,1315 @@
+{
+ "note": "Dry run on a private ml-service (:8011). Claims are PENDING in the dev DB; nothing was stored. Claim statuses were simulated as APPROVED in memory only to evaluate the policy rules.",
+ "model": "gemini-3.8-flash (production config gemini-3.7-flash had hit its 20/day free-tier quota)",
+ "attempt": "first (retry hit 429 quota)",
+ "claimsUsed": [
+  "C-0001-001",
+  "C-0001-002",
+  "C-0001-003",
+  "C-0001-006",
+  "C-0001-008",
+  "C-0001-009"
+ ],
+ "validatorErrorsOnFirstAttempt": [
+  "Scene 3: motion 'stat' needs an outcome value (%, kg, kcal...); counts of studies/people/years are not stats. Use 'title'."
+ ],
+ "writerRaw": {
+  "coreMessage": "Weight regain is driven by biology, not lack of willpower, and ongoing medical support helps keep it off.",
+  "reasoning": "Indian adults often blame their willpower when weight returns, carrying unnecessary shame around everyday meals and routines. Explaining the biological shift in hunger and the necessity of continuous medical guidance removes guilt while building confidence in clinical care. These formats distill complex metabolic studies into relatable, supportive touchpoints.",
+  "carousel": [
+   {
+    "n": 1,
+    "type": "hook",
+    "headline": "Will I *gain* it all back?",
+    "body": "It is the quiet worry after making progress. You did not fail; biology is pushing back.",
+    "kind": "brand",
+    "claimIds": [],
+    "background": "cream"
+   },
+   {
+    "n": 2,
+    "type": "illustration",
+    "headline": "That 4pm *chai* hunger",
+    "body": "You finished lunch two hours ago, but sitting at your desk, the urge for another snack feels irresistible.",
+    "kind": "illustration",
+    "claimIds": [],
+    "background": "maroon"
+   },
+   {
+    "n": 3,
+    "type": "point",
+    "headline": "Your appetite *rises* by design",
+    "body": "For each kilogram lost, estimated daily calorie burning dropped slightly while appetite increased by about 100 calories per day.",
+    "kind": "claim",
+    "claimIds": [
+     "C-0001-002"
+    ],
+    "background": "cream"
+   },
+   {
+    "n": 4,
+    "type": "point",
+    "headline": "Regain is *common* across studies",
+    "body": "Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+    "kind": "claim",
+    "claimIds": [
+     "C-0001-001"
+    ],
+    "background": "cream"
+   },
+   {
+    "n": 5,
+    "type": "point",
+    "headline": "Why *ongoing* care works better",
+    "body": "Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone.",
+    "kind": "claim",
+    "claimIds": [
+     "C-0001-003"
+    ],
+    "background": "cream"
+   },
+   {
+    "n": 6,
+    "type": "source",
+    "headline": "Where this *evidence* comes from",
+    "body": "Data compiled from multi-year clinical reviews and trials evaluating metabolic adaptation and weight maintenance.",
+    "kind": "brand",
+    "claimIds": [],
+    "background": "cream"
+   },
+   {
+    "n": 7,
+    "type": "closing",
+    "headline": "Lose well. *Live* well.",
+    "body": "Clinical weight loss, doctor-led. Questions? Ask a Steer doctor. steer · steerclub.com",
+    "kind": "brand",
+    "claimIds": [],
+    "background": "cream"
+   }
+  ],
+  "static": {
+   "headline": "Why *appetite* rises after weight loss",
+   "support": "For each kilogram lost, calorie burning dropped slightly and appetite rose by about 100 calories per day.",
+   "kind": "claim",
+   "claimIds": [
+    "C-0001-002"
+   ]
+  },
+  "reel": [
+   {
+    "n": 1,
+    "onScreen": "Will you *regain* the weight?",
+    "voiceover": "Ever wonder why keeping weight off feels like a constant fight against hunger?",
+    "kind": "illustration",
+    "claimIds": [],
+    "brollQuery": "office desk laptop",
+    "motion": "title"
+   },
+   {
+    "n": 2,
+    "onScreen": "+100 *calories* per day",
+    "voiceover": "For each kilogram lost, calorie burning dropped slightly while appetite increased by about 100 calories daily.",
+    "kind": "claim",
+    "claimIds": [
+     "C-0001-002"
+    ],
+    "brollQuery": "kitchen counter",
+    "motion": "stat"
+   },
+   {
+    "n": 3,
+    "onScreen": "Over *half* regained in two years",
+    "voiceover": "Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+    "kind": "claim",
+    "claimIds": [
+     "C-0001-001"
+    ],
+    "brollQuery": "wall clock",
+    "motion": "stat"
+   },
+   {
+    "n": 4,
+    "onScreen": "Why *ongoing* medical care helps",
+    "voiceover": "Ongoing support from healthcare professionals helped people maintain weight loss better than short-term programs alone.",
+    "kind": "claim",
+    "claimIds": [
+     "C-0001-003"
+    ],
+    "brollQuery": "morning park path",
+    "motion": "title"
+   },
+   {
+    "n": 5,
+    "onScreen": "steer · steerclub.com",
+    "voiceover": "Clinical weight loss, doctor-led. Stop Googling. Ask a Steer doctor at steerclub dot com.",
+    "kind": "brand",
+    "claimIds": [],
+    "brollQuery": "chai cup",
+    "motion": "closing"
+   }
+  ],
+  "caption": {
+   "paragraphs": [
+    {
+     "text": "It is 4pm, your laptop is open, and hunger strikes right after a wholesome lunch. When weight returns, we often blame ourselves or assume we lacked discipline.",
+     "kind": "illustration",
+     "claimIds": []
+    },
+    {
+     "text": "In reality, biology is responding. For each kilogram lost, estimated daily calorie burning dropped slightly while appetite increased by about 100 calories per day. Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+     "kind": "claim",
+     "claimIds": [
+      "C-0001-001",
+      "C-0001-002"
+     ]
+    },
+    {
+     "text": "That is why willpower alone is rarely the answer. Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone.",
+     "kind": "claim",
+     "claimIds": [
+      "C-0001-003"
+     ]
+    },
+    {
+     "text": "Clinical weight loss, doctor-led. Built for Indian biology and everyday routines. Stop Googling. Ask a doctor. steerclub.com",
+     "kind": "brand",
+     "claimIds": []
+    }
+   ],
+   "hashtags": [
+    "#steerclub",
+    "#metabolichealth",
+    "#weightcare",
+    "#doctorled",
+    "#indianhealth",
+    "#evidencebased",
+    "#metabolism",
+    "#preventivehealth",
+    "#healthindia"
+   ]
+  }
+ },
+ "afterEnrichmentAndPolicy": {
+  "label": "P-0001 new writer output (WS1 prompt, gemini-3.8-flash, first attempt)",
+  "paperCitation": "Hall et al., 2018 · Med Clin North Am",
+  "assets": {
+   "CAROUSEL": {
+    "violations": [
+     "BLOCKING ILLUSTRATION_STATES_FACT @carousel: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "citations": [
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am"
+    ],
+    "enriched": {
+     "slides": [
+      {
+       "n": 1,
+       "type": "hook",
+       "headline": "Will I *gain* it all back?",
+       "body": "It is the quiet worry after making progress. You did not fail; biology is pushing back.",
+       "kind": "brand",
+       "claimIds": [],
+       "background": "cream",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 2,
+       "type": "illustration",
+       "headline": "That 4pm *chai* hunger",
+       "body": "You finished lunch two hours ago, but sitting at your desk, the urge for another snack feels irresistible.",
+       "kind": "illustration",
+       "claimIds": [],
+       "background": "maroon",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 3,
+       "type": "point",
+       "headline": "Your appetite *rises* by design",
+       "body": "For each kilogram lost, estimated daily calorie burning dropped slightly while appetite increased by about 100 calories per day.",
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ],
+       "background": "cream",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": true,
+       "stat": "100 calories"
+      },
+      {
+       "n": 4,
+       "type": "point",
+       "headline": "Regain is *common* across studies",
+       "body": "Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-001"
+       ],
+       "background": "cream",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 5,
+       "type": "point",
+       "headline": "Why *ongoing* care works better",
+       "body": "Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone.",
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-003"
+       ],
+       "background": "cream",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 6,
+       "type": "source",
+       "headline": "Where this *evidence* comes from",
+       "body": "Data compiled from multi-year clinical reviews and trials evaluating metabolic adaptation and weight maintenance.",
+       "kind": "brand",
+       "claimIds": [],
+       "background": "cream",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 7,
+       "type": "closing",
+       "headline": "Lose well. *Live* well.",
+       "body": "Clinical weight loss, doctor-led. Questions? Ask a Steer doctor. steer · steerclub.com",
+       "kind": "brand",
+       "claimIds": [],
+       "background": "cream",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      }
+     ],
+     "coreMessage": "Weight regain is driven by biology, not lack of willpower, and ongoing medical support helps keep it off.",
+     "reasoning": "Indian adults often blame their willpower when weight returns, carrying unnecessary shame around everyday meals and routines. Explaining the biological shift in hunger and the necessity of continuous medical guidance removes guilt while building confidence in clinical care. These formats distill complex metabolic studies into relatable, supportive touchpoints.",
+     "citation": "Hall et al., 2018 · Med Clin North Am"
+    }
+   },
+   "STATIC": {
+    "violations": [],
+    "citations": [
+     "Hall et al., 2018 · Med Clin North Am"
+    ],
+    "enriched": {
+     "headline": "Why *appetite* rises after weight loss",
+     "support": "For each kilogram lost, calorie burning dropped slightly and appetite rose by about 100 calories per day.",
+     "kind": "claim",
+     "claimIds": [
+      "C-0001-002"
+     ],
+     "citation": "Hall et al., 2018 · Med Clin North Am",
+     "paperCitation": "Hall et al., 2018 · Med Clin North Am",
+     "statEligible": true,
+     "stat": "100 calories"
+    }
+   },
+   "REEL": {
+    "violations": [
+     "BLOCKING ILLUSTRATION_STATES_FACT @reel: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "citations": [
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am"
+    ],
+    "enriched": {
+     "scenes": [
+      {
+       "n": 1,
+       "onScreen": "Will you *regain* the weight?",
+       "voiceover": "Ever wonder why keeping weight off feels like a constant fight against hunger?",
+       "kind": "illustration",
+       "claimIds": [],
+       "brollQuery": "office desk laptop",
+       "motion": "title",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 2,
+       "onScreen": "+100 *calories* per day",
+       "voiceover": "For each kilogram lost, calorie burning dropped slightly while appetite increased by about 100 calories daily.",
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ],
+       "brollQuery": "kitchen counter",
+       "motion": "stat",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": true,
+       "stat": "100 calories"
+      },
+      {
+       "n": 3,
+       "onScreen": "Over *half* regained in two years",
+       "voiceover": "Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-001"
+       ],
+       "brollQuery": "wall clock",
+       "motion": "title",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": false,
+       "stat": null,
+       "motionCoercedFrom": "stat"
+      },
+      {
+       "n": 4,
+       "onScreen": "Why *ongoing* medical care helps",
+       "voiceover": "Ongoing support from healthcare professionals helped people maintain weight loss better than short-term programs alone.",
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-003"
+       ],
+       "brollQuery": "morning park path",
+       "motion": "title",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 5,
+       "onScreen": "steer · steerclub.com",
+       "voiceover": "Clinical weight loss, doctor-led. Stop Googling. Ask a Steer doctor at steerclub dot com.",
+       "kind": "brand",
+       "claimIds": [],
+       "brollQuery": "chai cup",
+       "motion": "closing",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      }
+     ],
+     "citation": "Hall et al., 2018 · Med Clin North Am"
+    }
+   },
+   "CAPTION": {
+    "violations": [
+     "BLOCKING ILLUSTRATION_STATES_FACT @caption: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "citations": [
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am"
+    ],
+    "enriched": {
+     "paragraphs": [
+      {
+       "text": "It is 4pm, your laptop is open, and hunger strikes right after a wholesome lunch. When weight returns, we often blame ourselves or assume we lacked discipline.",
+       "kind": "illustration",
+       "claimIds": [],
+       "citation": null
+      },
+      {
+       "text": "In reality, biology is responding. For each kilogram lost, estimated daily calorie burning dropped slightly while appetite increased by about 100 calories per day. Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-001",
+        "C-0001-002"
+       ],
+       "citation": "Hall et al., 2018 · Med Clin North Am"
+      },
+      {
+       "text": "That is why willpower alone is rarely the answer. Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone.",
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-003"
+       ],
+       "citation": "Hall et al., 2018 · Med Clin North Am"
+      },
+      {
+       "text": "Clinical weight loss, doctor-led. Built for Indian biology and everyday routines. Stop Googling. Ask a doctor. steerclub.com",
+       "kind": "brand",
+       "claimIds": [],
+       "citation": null
+      }
+     ],
+     "hashtags": [
+      "#steerclub",
+      "#metabolichealth",
+      "#weightcare",
+      "#doctorled",
+      "#indianhealth",
+      "#evidencebased",
+      "#metabolism",
+      "#preventivehealth",
+      "#healthindia"
+     ],
+     "citation": "Hall et al., 2018 · Med Clin North Am"
+    }
+   }
+  }
+ },
+ "existingDevAssetsUnderNewRules": {
+  "label": "P-0001 existing dev-DB assets (written before WS1)",
+  "paperCitation": "Hall et al., 2018 · Med Clin North Am",
+  "assets": {
+   "CAPTION": {
+    "violationsAsStored": [
+     "BLOCKING ILLUSTRATION_STATES_FACT @caption:p1: Illustration uses 'biology', which states a biological/medical fact (keyword backstop)",
+     "BLOCKING ILLUSTRATION_STATES_FACT @caption: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "violations": [
+     "BLOCKING ILLUSTRATION_STATES_FACT @caption:p1: Illustration uses 'biology', which states a biological/medical fact (keyword backstop)",
+     "BLOCKING ILLUSTRATION_STATES_FACT @caption: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "citations": [
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am"
+    ],
+    "enriched": {
+     "hashtags": [
+      "#steerclub",
+      "#metabolichealth",
+      "#weightcare",
+      "#doctorled",
+      "#healthindia",
+      "#evidencebased",
+      "#indianwellness",
+      "#metabolism",
+      "#clinicalcare"
+     ],
+     "reasoning": "Indian patients often internalize weight regain as personal failure rather than compensatory biology. Framing trial data with clinical context helps dispel guilt and emphasizes Steer's doctor-led habit transitions alongside cultural foods. The visual and reel formats translate complex trial observations into transparent, empowering guidance.",
+     "paragraphs": [
+      {
+       "kind": "illustration",
+       "text": "Ever feel like your appetite spikes the moment you lose weight? That 4pm hunger during a busy workday is not a personal failure. It is basic biology.",
+       "claimIds": [],
+       "citation": null
+      },
+      {
+       "kind": "claim",
+       "text": "Research shows that for each kilogram lost, appetite increased by approximately 100 calories daily while resting burn dropped slightly. Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+       "claimIds": [
+        "C-0001-001",
+        "C-0001-002"
+       ],
+       "citation": "Hall et al., 2018 · Med Clin North Am"
+      },
+      {
+       "kind": "claim",
+       "text": "Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone. Sustainable metabolic health requires a planned strategy, not crash diets.",
+       "claimIds": [
+        "C-0001-003"
+       ],
+       "citation": "Hall et al., 2018 · Med Clin North Am"
+      },
+      {
+       "kind": "brand",
+       "text": "Clinical weight loss, doctor-led. Stop Googling. Ask a doctor. steerclub.com",
+       "claimIds": [],
+       "citation": null
+      }
+     ],
+     "coreMessage": "Weight regain is driven by biological adaptations rather than willpower, making a doctor-led planned exit essential for long-term health.",
+     "citation": "Hall et al., 2018 · Med Clin North Am"
+    }
+   },
+   "CAROUSEL": {
+    "violationsAsStored": [
+     "BLOCKING ILLUSTRATION_STATES_FACT @slide:3: Illustration uses 'biology', which states a biological/medical fact (keyword backstop)",
+     "BLOCKING CITATION_TEXT_IN_COPY @slide:6: Citation-like text in copy ('(2018)'); citations are added from the paper metadata",
+     "BLOCKING ILLUSTRATION_STATES_FACT @carousel: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "violations": [
+     "BLOCKING ILLUSTRATION_STATES_FACT @slide:3: Illustration uses 'biology', which states a biological/medical fact (keyword backstop)",
+     "BLOCKING CITATION_TEXT_IN_COPY @slide:6: Citation-like text in copy ('(2018)'); citations are added from the paper metadata",
+     "BLOCKING ILLUSTRATION_STATES_FACT @carousel: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "citations": [
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am"
+    ],
+    "enriched": {
+     "blocks": [
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "image": "carousel/1.png",
+       "slide": 1,
+       "blockId": "slide1.label"
+      },
+      {
+       "h": 202,
+       "w": 888,
+       "x": 96,
+       "y": 513,
+       "image": "carousel/1.png",
+       "slide": 1,
+       "blockId": "slide1.headline"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "image": "carousel/1.png",
+       "slide": 1,
+       "blockId": "slide1.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "image": "carousel/2.png",
+       "slide": 2,
+       "blockId": "slide2.label"
+      },
+      {
+       "h": 160,
+       "w": 888,
+       "x": 96,
+       "y": 421,
+       "image": "carousel/2.png",
+       "slide": 2,
+       "blockId": "slide2.stat"
+      },
+      {
+       "h": 88,
+       "w": 888,
+       "x": 96,
+       "y": 601,
+       "image": "carousel/2.png",
+       "slide": 2,
+       "blockId": "slide2.headline"
+      },
+      {
+       "h": 151,
+       "w": 888,
+       "x": 96,
+       "y": 722,
+       "image": "carousel/2.png",
+       "slide": 2,
+       "blockId": "slide2.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "image": "carousel/2.png",
+       "slide": 2,
+       "blockId": "slide2.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "image": "carousel/3.png",
+       "slide": 3,
+       "blockId": "slide3.label"
+      },
+      {
+       "h": 88,
+       "w": 774,
+       "x": 153,
+       "y": 544,
+       "image": "carousel/3.png",
+       "slide": 3,
+       "blockId": "slide3.headline"
+      },
+      {
+       "h": 151,
+       "w": 774,
+       "x": 153,
+       "y": 661,
+       "image": "carousel/3.png",
+       "slide": 3,
+       "blockId": "slide3.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "image": "carousel/3.png",
+       "slide": 3,
+       "blockId": "slide3.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "image": "carousel/4.png",
+       "slide": 4,
+       "blockId": "slide4.label"
+      },
+      {
+       "h": 160,
+       "w": 888,
+       "x": 96,
+       "y": 421,
+       "image": "carousel/4.png",
+       "slide": 4,
+       "blockId": "slide4.stat"
+      },
+      {
+       "h": 88,
+       "w": 888,
+       "x": 96,
+       "y": 601,
+       "image": "carousel/4.png",
+       "slide": 4,
+       "blockId": "slide4.headline"
+      },
+      {
+       "h": 151,
+       "w": 888,
+       "x": 96,
+       "y": 722,
+       "image": "carousel/4.png",
+       "slide": 4,
+       "blockId": "slide4.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "image": "carousel/4.png",
+       "slide": 4,
+       "blockId": "slide4.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "image": "carousel/5.png",
+       "slide": 5,
+       "blockId": "slide5.label"
+      },
+      {
+       "h": 176,
+       "w": 888,
+       "x": 96,
+       "y": 467,
+       "image": "carousel/5.png",
+       "slide": 5,
+       "blockId": "slide5.headline"
+      },
+      {
+       "h": 151,
+       "w": 888,
+       "x": 96,
+       "y": 676,
+       "image": "carousel/5.png",
+       "slide": 5,
+       "blockId": "slide5.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "image": "carousel/5.png",
+       "slide": 5,
+       "blockId": "slide5.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "image": "carousel/6.png",
+       "slide": 6,
+       "blockId": "slide6.label"
+      },
+      {
+       "h": 88,
+       "w": 888,
+       "x": 96,
+       "y": 518,
+       "image": "carousel/6.png",
+       "slide": 6,
+       "blockId": "slide6.headline"
+      },
+      {
+       "h": 84,
+       "w": 888,
+       "x": 96,
+       "y": 639,
+       "image": "carousel/6.png",
+       "slide": 6,
+       "blockId": "slide6.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "image": "carousel/6.png",
+       "slide": 6,
+       "blockId": "slide6.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "image": "carousel/7.png",
+       "slide": 7,
+       "blockId": "slide7.label"
+      },
+      {
+       "h": 92,
+       "w": 888,
+       "x": 96,
+       "y": 460,
+       "image": "carousel/7.png",
+       "slide": 7,
+       "blockId": "slide7.headline"
+      },
+      {
+       "h": 90,
+       "w": 888,
+       "x": 96,
+       "y": 584,
+       "image": "carousel/7.png",
+       "slide": 7,
+       "blockId": "slide7.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "image": "carousel/7.png",
+       "slide": 7,
+       "blockId": "slide7.footer"
+      }
+     ],
+     "slides": [
+      {
+       "n": 1,
+       "body": "It is easy to blame your willpower when old habits slip. But the science shows a different story.",
+       "kind": "brand",
+       "type": "hook",
+       "claimIds": [],
+       "headline": "Why does the weight come *back*?",
+       "background": "cream",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 2,
+       "body": "For each kilogram lost, appetite increased by approximately 100 calories daily while resting burn dropped slightly.",
+       "kind": "claim",
+       "type": "point",
+       "claimIds": [
+        "C-0001-002"
+       ],
+       "headline": "Your body *fights* to regain.",
+       "background": "cream",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": true,
+       "stat": "100 calories"
+      },
+      {
+       "n": 3,
+       "body": "That sudden 5pm hunger at your desk is not weakness. Your biology is actively signaling for fuel after calorie deficits.",
+       "kind": "illustration",
+       "type": "illustration",
+       "claimIds": [],
+       "headline": "The evening *chai* craving.",
+       "background": "cream",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 4,
+       "body": "Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+       "kind": "claim",
+       "type": "point",
+       "claimIds": [
+        "C-0001-001"
+       ],
+       "headline": "Going *alone* is hard.",
+       "background": "maroon",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 5,
+       "body": "Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone.",
+       "kind": "claim",
+       "type": "point",
+       "claimIds": [
+        "C-0001-003"
+       ],
+       "headline": "Continuous *support* changes outcomes.",
+       "background": "cream",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 6,
+       "body": "Hall & Kahan (2018). Maintenance of lost weight and long-term management of obesity. Med Clin North Am.",
+       "kind": "brand",
+       "type": "source",
+       "claimIds": [],
+       "headline": "Backed by *medical* research.",
+       "background": "cream",
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 7,
+       "body": "Metabolic care, calibrated for Indian biology. Questions? Ask a Steer doctor. steer · steerclub.com",
+       "kind": "brand",
+       "type": "closing",
+       "claimIds": [],
+       "headline": "Clinical care, *doctor-led*.",
+       "background": "cream",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      }
+     ],
+     "blockMap": {
+      "slide1.body": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide1.stat": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide2.body": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ]
+      },
+      "slide2.stat": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ]
+      },
+      "slide3.body": {
+       "kind": "illustration",
+       "claimIds": []
+      },
+      "slide3.stat": {
+       "kind": "illustration",
+       "claimIds": []
+      },
+      "slide4.body": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-001"
+       ]
+      },
+      "slide4.stat": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-001"
+       ]
+      },
+      "slide5.body": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-003"
+       ]
+      },
+      "slide5.stat": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-003"
+       ]
+      },
+      "slide6.body": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide6.stat": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide7.body": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide7.stat": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide1.label": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide2.label": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ]
+      },
+      "slide3.label": {
+       "kind": "illustration",
+       "claimIds": []
+      },
+      "slide4.label": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-001"
+       ]
+      },
+      "slide5.label": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-003"
+       ]
+      },
+      "slide6.label": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide7.label": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide1.footer": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide2.footer": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ]
+      },
+      "slide3.footer": {
+       "kind": "illustration",
+       "claimIds": []
+      },
+      "slide4.footer": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-001"
+       ]
+      },
+      "slide5.footer": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-003"
+       ]
+      },
+      "slide6.footer": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide7.footer": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide1.headline": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide2.headline": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ]
+      },
+      "slide3.headline": {
+       "kind": "illustration",
+       "claimIds": []
+      },
+      "slide4.headline": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-001"
+       ]
+      },
+      "slide5.headline": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-003"
+       ]
+      },
+      "slide6.headline": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide7.headline": {
+       "kind": "brand",
+       "claimIds": []
+      }
+     },
+     "reasoning": "Indian patients often internalize weight regain as personal failure rather than compensatory biology. Framing trial data with clinical context helps dispel guilt and emphasizes Steer's doctor-led habit transitions alongside cultural foods. The visual and reel formats translate complex trial observations into transparent, empowering guidance.",
+     "coreMessage": "Weight regain is driven by biological adaptations rather than willpower, making a doctor-led planned exit essential for long-term health.",
+     "citation": "Hall et al., 2018 · Med Clin North Am"
+    }
+   },
+   "REEL": {
+    "violationsAsStored": [
+     "BLOCKING QUOTE_NOT_CLAIM_COPY @scene:4: Quote card text is not the approved claim copy: Doctor support changes things"
+    ],
+    "violations": [],
+    "citations": [
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am",
+     "Hall et al., 2018 · Med Clin North Am"
+    ],
+    "enriched": {
+     "scenes": [
+      {
+       "n": 1,
+       "url": null,
+       "kind": "brand",
+       "tags": null,
+       "hitId": null,
+       "motion": "title",
+       "source": null,
+       "userId": null,
+       "creator": null,
+       "brollSrc": null,
+       "claimIds": [],
+       "onScreen": "Why does the weight return?",
+       "sizeUsed": null,
+       "videoPath": null,
+       "voiceover": "Ever wonder why keeping weight off feels like an uphill battle after every diet? It is not your willpower.",
+       "brollQuery": "steaming black tea cup",
+       "creditLine": null,
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 2,
+       "url": null,
+       "kind": "claim",
+       "tags": null,
+       "hitId": null,
+       "motion": "stat",
+       "source": null,
+       "userId": null,
+       "creator": null,
+       "brollSrc": null,
+       "claimIds": [
+        "C-0001-002"
+       ],
+       "onScreen": "Your appetite increases",
+       "sizeUsed": null,
+       "videoPath": null,
+       "voiceover": "For each kilogram lost, appetite increased by approximately 100 calories daily while resting burn dropped slightly in clinical studies.",
+       "brollQuery": "fresh roti on plate",
+       "creditLine": null,
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": true,
+       "stat": "100 calories"
+      },
+      {
+       "n": 3,
+       "url": null,
+       "kind": "claim",
+       "tags": null,
+       "hitId": null,
+       "motion": "title",
+       "source": null,
+       "userId": null,
+       "creator": null,
+       "brollSrc": null,
+       "claimIds": [
+        "C-0001-001"
+       ],
+       "onScreen": "Long-term study findings",
+       "sizeUsed": null,
+       "videoPath": null,
+       "voiceover": "Across 29 long-term studies, participants on average regained over half their lost weight within two years.",
+       "brollQuery": "medical journal pages open",
+       "creditLine": null,
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": false,
+       "stat": null,
+       "motionCoercedFrom": "stat"
+      },
+      {
+       "n": 4,
+       "url": null,
+       "kind": "claim",
+       "tags": null,
+       "hitId": null,
+       "motion": "quote",
+       "source": null,
+       "userId": null,
+       "creator": null,
+       "brollSrc": null,
+       "claimIds": [
+        "C-0001-003"
+       ],
+       "onScreen": "Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone.",
+       "sizeUsed": null,
+       "videoPath": null,
+       "voiceover": "Ongoing support from healthcare professionals or groups helped people maintain weight loss better than short-term programs alone.",
+       "brollQuery": "stethoscope on wooden desk",
+       "creditLine": null,
+       "citation": "Hall et al., 2018 · Med Clin North Am",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 5,
+       "url": null,
+       "kind": "brand",
+       "tags": null,
+       "hitId": null,
+       "motion": "closing",
+       "source": null,
+       "userId": null,
+       "creator": null,
+       "brollSrc": null,
+       "claimIds": [],
+       "onScreen": "steer · steerclub.com",
+       "sizeUsed": null,
+       "videoPath": null,
+       "voiceover": "Metabolic care, calibrated for Indian biology. Stop Googling. Ask a doctor at steerclub.com.",
+       "brollQuery": "minimalist medical clinic desk",
+       "creditLine": null,
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      }
+     ],
+     "reasoning": "Indian patients often internalize weight regain as personal failure rather than compensatory biology. Framing trial data with clinical context helps dispel guilt and emphasizes Steer's doctor-led habit transitions alongside cultural foods. The visual and reel formats translate complex trial observations into transparent, empowering guidance.",
+     "coreMessage": "Weight regain is driven by biological adaptations rather than willpower, making a doctor-led planned exit essential for long-term health.",
+     "citation": "Hall et al., 2018 · Med Clin North Am"
+    }
+   },
+   "STATIC": {
+    "violationsAsStored": [
+     "BLOCKING CITATION_TEXT_IN_COPY @static:footnote: Legacy writer footnote present; citations must come from the paper metadata row"
+    ],
+    "violations": [],
+    "citations": [
+     "Hall et al., 2018 · Med Clin North Am"
+    ],
+    "enriched": {
+     "kind": "claim",
+     "blocks": [
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "image": "static.png",
+       "blockId": "static.label"
+      },
+      {
+       "h": 97,
+       "w": 888,
+       "x": 96,
+       "y": 484,
+       "image": "static.png",
+       "blockId": "static.headline"
+      },
+      {
+       "h": 106,
+       "w": 888,
+       "x": 96,
+       "y": 646,
+       "image": "static.png",
+       "blockId": "static.support"
+      },
+      {
+       "h": 26,
+       "w": 888,
+       "x": 96,
+       "y": 784,
+       "image": "static.png",
+       "blockId": "static.footnote"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "image": "static.png",
+       "blockId": "static.footer"
+      }
+     ],
+     "support": "For each kilogram lost, appetite increased by approximately 100 calories daily.",
+     "blockMap": {
+      "static.label": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ]
+      },
+      "static.footer": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ]
+      },
+      "static.support": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ]
+      },
+      "static.footnote": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ]
+      },
+      "static.headline": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0001-002"
+       ]
+      }
+     },
+     "claimIds": [
+      "C-0001-002"
+     ],
+     "headline": "Weight regain is *biology*.",
+     "reasoning": "Indian patients often internalize weight regain as personal failure rather than compensatory biology. Framing trial data with clinical context helps dispel guilt and emphasizes Steer's doctor-led habit transitions alongside cultural foods. The visual and reel formats translate complex trial observations into transparent, empowering guidance.",
+     "coreMessage": "Weight regain is driven by biological adaptations rather than willpower, making a doctor-led planned exit essential for long-term health.",
+     "citation": "Hall et al., 2018 · Med Clin North Am",
+     "paperCitation": "Hall et al., 2018 · Med Clin North Am",
+     "statEligible": true,
+     "stat": "100 calories"
+    }
+   }
+  }
+ }
+}

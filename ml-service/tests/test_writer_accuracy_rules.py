@@ -134,3 +134,12 @@ def test_cache_key_scoped_by_paper_claims_and_prompt_version():
     k3 = writer_cache_key_extra(WriteRequest(paperId="P-0001", meta=meta, claims=[c2]))
     assert k1 != k2 and k1 != k3
     assert k1.startswith("writer-v")
+
+
+def test_qualifier_phrases_with_descriptors():
+    from app.write.copy_rules import has_qualifier
+    assert has_qualifier("In one clinical follow-up trial, participants regained most of their weight.")
+    assert has_qualifier("In one exploratory trial, weight returned.")
+    assert has_qualifier("In this extension study, blood pressure rose.")
+    assert not has_qualifier("Trial data showed nearly half kept it off.")
+    assert not is_factual("What one *trial* showed after stopping.")

@@ -1,0 +1,755 @@
+{
+ "note": "No new writer output for P-0002: every Gemini call returned HTTP 429 (free-tier 20 requests/day per model exhausted for gemini-3.7-flash and gemini-3.8-flash; retry ~8h). Below are the existing dev-DB P-0002 assets (written before WS1) re-checked under the new rules and re-enriched with citations from the paper's real metadata (Wilding et al., 2022, from the fixed meta.py extraction).",
+ "newWriterOutput": null,
+ "existingDevAssetsUnderNewRules": {
+  "label": "P-0002 existing dev-DB assets (written before WS1)",
+  "paperCitation": "Wilding et al., 2022 · Diabetes Obes Metab",
+  "assets": {
+   "CAPTION": {
+    "violationsAsStored": [
+     "BLOCKING ILLUSTRATION_STATES_FACT @caption: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "violations": [
+     "BLOCKING ILLUSTRATION_STATES_FACT @caption: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "citations": [
+     "Wilding et al., 2022 · Diabetes Obes Metab",
+     "Wilding et al., 2022 · Diabetes Obes Metab",
+     "Wilding et al., 2022 · Diabetes Obes Metab"
+    ],
+    "enriched": {
+     "hashtags": [
+      "#steerclub",
+      "#metabolichealth",
+      "#weightcare",
+      "#doctorled",
+      "#healthindia",
+      "#lifestylemedicine",
+      "#evidencebased",
+      "#preventivehealth",
+      "#metabolism"
+     ],
+     "reasoning": "Indian adults often navigate metabolic challenges alongside rich social food cultures and misleading online fitness trends. Grounding their journey in clinical evidence reframes weight care as biology rather than personal failure. Using structured carousel slides, relatable reels, and focused static cards makes complex medical insights reassuring and easy to absorb.",
+     "paragraphs": [
+      {
+       "kind": "claim",
+       "text": "The fear of regaining weight after stopping treatment is completely understandable. But weight regain is not a personal failure; when people lose weight, the body triggers natural biological changes that make regain common.",
+       "claimIds": [
+        "C-0002-009"
+       ],
+       "citation": "Wilding et al., 2022 · Diabetes Obes Metab"
+      },
+      {
+       "kind": "claim",
+       "text": "In one clinical follow-up trial, participants regained most of their lost weight over one year after stopping treatment, though nearly half still maintained at least 5% weight loss.",
+       "claimIds": [
+        "C-0002-001",
+        "C-0002-002"
+       ],
+       "citation": "Wilding et al., 2022 · Diabetes Obes Metab"
+      },
+      {
+       "kind": "illustration",
+       "text": "Sustainable health means accounting for Indian dinner plates, family weddings, and desk jobs. That is why metabolic care requires a planned exit, building long-term habits alongside medical supervision.",
+       "claimIds": [],
+       "citation": null
+      },
+      {
+       "kind": "brand",
+       "text": "Before you start, hear it from a doctor, not a reel. Clinical weight loss, doctor-led. Questions? Ask a Steer doctor. steerclub.com",
+       "claimIds": [],
+       "citation": null
+      }
+     ],
+     "coreMessage": "Clinical weight care is doctor-led, grounded in biology, and built for Indian lifestyles rather than willpower alone.",
+     "citation": "Wilding et al., 2022 · Diabetes Obes Metab"
+    }
+   },
+   "CAROUSEL": {
+    "violationsAsStored": [
+     "BLOCKING CITATION_TEXT_IN_COPY @slide:6: Citation-like text in copy ('(2018)'); citations are added from the paper metadata",
+     "BLOCKING ILLUSTRATION_STATES_FACT @carousel: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "violations": [
+     "BLOCKING CITATION_TEXT_IN_COPY @slide:6: Citation-like text in copy ('(2018)'); citations are added from the paper metadata",
+     "BLOCKING ILLUSTRATION_STATES_FACT @carousel: Illustration fact check could not run (Gemini free-tier daily quota exhausted (HTTP 429) at evidence time; check not run); regenerate to retry"
+    ],
+    "citations": [
+     "Wilding et al., 2022 · Diabetes Obes Metab",
+     "Wilding et al., 2022 · Diabetes Obes Metab",
+     "Wilding et al., 2022 · Diabetes Obes Metab",
+     "Wilding et al., 2022 · Diabetes Obes Metab",
+     "Wilding et al., 2022 · Diabetes Obes Metab"
+    ],
+    "enriched": {
+     "blocks": [
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "slide": 1,
+       "blockId": "slide1.label"
+      },
+      {
+       "h": 202,
+       "w": 888,
+       "x": 96,
+       "y": 513,
+       "slide": 1,
+       "blockId": "slide1.headline"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "slide": 1,
+       "blockId": "slide1.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "slide": 2,
+       "blockId": "slide2.label"
+      },
+      {
+       "h": 88,
+       "w": 888,
+       "x": 96,
+       "y": 511,
+       "slide": 2,
+       "blockId": "slide2.headline"
+      },
+      {
+       "h": 151,
+       "w": 888,
+       "x": 96,
+       "y": 632,
+       "slide": 2,
+       "blockId": "slide2.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "slide": 2,
+       "blockId": "slide2.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "slide": 3,
+       "blockId": "slide3.label"
+      },
+      {
+       "h": 176,
+       "w": 888,
+       "x": 96,
+       "y": 467,
+       "slide": 3,
+       "blockId": "slide3.headline"
+      },
+      {
+       "h": 151,
+       "w": 888,
+       "x": 96,
+       "y": 676,
+       "slide": 3,
+       "blockId": "slide3.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "slide": 3,
+       "blockId": "slide3.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "slide": 4,
+       "blockId": "slide4.label"
+      },
+      {
+       "h": 160,
+       "w": 888,
+       "x": 96,
+       "y": 377,
+       "slide": 4,
+       "blockId": "slide4.stat"
+      },
+      {
+       "h": 176,
+       "w": 888,
+       "x": 96,
+       "y": 557,
+       "slide": 4,
+       "blockId": "slide4.headline"
+      },
+      {
+       "h": 151,
+       "w": 888,
+       "x": 96,
+       "y": 766,
+       "slide": 4,
+       "blockId": "slide4.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "slide": 4,
+       "blockId": "slide4.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "slide": 5,
+       "blockId": "slide5.label"
+      },
+      {
+       "h": 176,
+       "w": 774,
+       "x": 153,
+       "y": 475,
+       "slide": 5,
+       "blockId": "slide5.headline"
+      },
+      {
+       "h": 202,
+       "w": 774,
+       "x": 153,
+       "y": 679,
+       "slide": 5,
+       "blockId": "slide5.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "slide": 5,
+       "blockId": "slide5.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "slide": 6,
+       "blockId": "slide6.label"
+      },
+      {
+       "h": 88,
+       "w": 888,
+       "x": 96,
+       "y": 518,
+       "slide": 6,
+       "blockId": "slide6.headline"
+      },
+      {
+       "h": 84,
+       "w": 888,
+       "x": 96,
+       "y": 639,
+       "slide": 6,
+       "blockId": "slide6.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "slide": 6,
+       "blockId": "slide6.footer"
+      },
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "slide": 7,
+       "blockId": "slide7.label"
+      },
+      {
+       "h": 92,
+       "w": 888,
+       "x": 96,
+       "y": 460,
+       "slide": 7,
+       "blockId": "slide7.headline"
+      },
+      {
+       "h": 90,
+       "w": 888,
+       "x": 96,
+       "y": 584,
+       "slide": 7,
+       "blockId": "slide7.body"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "slide": 7,
+       "blockId": "slide7.footer"
+      }
+     ],
+     "slides": [
+      {
+       "n": 1,
+       "body": "It is the quiet worry behind starting medical care. Here is what clinical trials actually observed.",
+       "kind": "brand",
+       "type": "hook",
+       "claimIds": [],
+       "headline": "Will you *regain* weight after stopping?",
+       "background": "cream",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 2,
+       "body": "Weight loss activates natural biological changes in the body that make long-term weight regain common.",
+       "kind": "claim",
+       "type": "point",
+       "claimIds": [
+        "C-0002-009"
+       ],
+       "headline": "The body naturally *fights* back.",
+       "background": "cream",
+       "citation": "Wilding et al., 2022 · Diabetes Obes Metab",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 3,
+       "body": "In one trial follow-up, after stopping treatment, participants regained most of their lost weight over one year, keeping a modest overall reduction.",
+       "kind": "claim",
+       "type": "point",
+       "claimIds": [
+        "C-0002-001"
+       ],
+       "headline": "What one *trial* showed after stopping.",
+       "background": "cream",
+       "citation": "Wilding et al., 2022 · Diabetes Obes Metab",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 4,
+       "body": "In this trial follow-up, nearly half the participants still maintained at least 5% weight loss one year after stopping the medicine.",
+       "kind": "claim",
+       "type": "point",
+       "claimIds": [
+        "C-0002-002"
+       ],
+       "headline": "Some benefits still *remained* after.",
+       "background": "maroon",
+       "citation": "Wilding et al., 2022 · Diabetes Obes Metab",
+       "statEligible": true,
+       "stat": "5%"
+      },
+      {
+       "n": 5,
+       "body": "Sustainable metabolic health cannot rely on quick fixes when our lives involve festive weddings, evening chai, and home-cooked dinners.",
+       "kind": "illustration",
+       "type": "illustration",
+       "claimIds": [],
+       "headline": "Navigating daily *rotis* and family dinners.",
+       "background": "cream",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 6,
+       "body": "Data from Hall and Kahan (2018), Med Clin North Am. Note that this extension trial had a smaller participant sample.",
+       "kind": "claim",
+       "type": "source",
+       "claimIds": [
+        "C-0002-010"
+       ],
+       "headline": "The *evidence* behind the science.",
+       "background": "cream",
+       "citation": "Wilding et al., 2022 · Diabetes Obes Metab",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 7,
+       "body": "Clinical weight loss, doctor-led. Stop Googling. Ask a doctor. steer · steerclub.com",
+       "kind": "brand",
+       "type": "closing",
+       "claimIds": [],
+       "headline": "A planned exit, *doctor-led*.",
+       "background": "cream",
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      }
+     ],
+     "blockMap": {
+      "slide1.body": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide1.stat": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide2.body": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-009"
+       ]
+      },
+      "slide2.stat": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-009"
+       ]
+      },
+      "slide3.body": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-001"
+       ]
+      },
+      "slide3.stat": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-001"
+       ]
+      },
+      "slide4.body": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-002"
+       ]
+      },
+      "slide4.stat": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-002"
+       ]
+      },
+      "slide5.body": {
+       "kind": "illustration",
+       "claimIds": []
+      },
+      "slide5.stat": {
+       "kind": "illustration",
+       "claimIds": []
+      },
+      "slide6.body": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-010"
+       ]
+      },
+      "slide6.stat": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-010"
+       ]
+      },
+      "slide7.body": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide7.stat": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide1.headline": {
+       "kind": "brand",
+       "claimIds": []
+      },
+      "slide2.headline": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-009"
+       ]
+      },
+      "slide3.headline": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-001"
+       ]
+      },
+      "slide4.headline": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-002"
+       ]
+      },
+      "slide5.headline": {
+       "kind": "illustration",
+       "claimIds": []
+      },
+      "slide6.headline": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-010"
+       ]
+      },
+      "slide7.headline": {
+       "kind": "brand",
+       "claimIds": []
+      }
+     },
+     "reasoning": "Indian adults often navigate metabolic challenges alongside rich social food cultures and misleading online fitness trends. Grounding their journey in clinical evidence reframes weight care as biology rather than personal failure. Using structured carousel slides, relatable reels, and focused static cards makes complex medical insights reassuring and easy to absorb.",
+     "coreMessage": "Clinical weight care is doctor-led, grounded in biology, and built for Indian lifestyles rather than willpower alone.",
+     "citation": "Wilding et al., 2022 · Diabetes Obes Metab"
+    }
+   },
+   "REEL": {
+    "violationsAsStored": [
+     "BLOCKING QUOTE_NOT_CLAIM_COPY @scene:2: Quote card text is not the approved claim copy: It is biology, not *willpower*.",
+     "BLOCKING MISSING_QUALIFIER @scene:4:voiceover: Exploratory claim without a qualifier: Yet, trial data showed nearly half the participants still maintained at least 5% weight loss one year later.",
+     "BLOCKING MISSING_QUALIFIER @scene:4:onScreen: Exploratory claim without a qualifier: Nearly *half* maintained weight loss."
+    ],
+    "violations": [
+     "BLOCKING MISSING_QUALIFIER @scene:4:voiceover: Exploratory claim without a qualifier: Yet, trial data showed nearly half the participants still maintained at least 5% weight loss one year later.",
+     "BLOCKING MISSING_QUALIFIER @scene:4:onScreen: Exploratory claim without a qualifier: Nearly *half* maintained weight loss."
+    ],
+    "citations": [
+     "Wilding et al., 2022 · Diabetes Obes Metab",
+     "Wilding et al., 2022 · Diabetes Obes Metab",
+     "Wilding et al., 2022 · Diabetes Obes Metab",
+     "Wilding et al., 2022 · Diabetes Obes Metab"
+    ],
+    "enriched": {
+     "scenes": [
+      {
+       "n": 1,
+       "url": null,
+       "kind": "brand",
+       "tags": null,
+       "hitId": null,
+       "motion": "title",
+       "source": null,
+       "userId": null,
+       "creator": null,
+       "brollSrc": null,
+       "claimIds": [],
+       "onScreen": "Will you *regain* it all back?",
+       "sizeUsed": null,
+       "videoPath": null,
+       "voiceover": "The biggest question people ask doctors before starting metabolic care is whether the weight returns once treatment ends.",
+       "brollQuery": "steaming chai cup desk",
+       "creditLine": null,
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 2,
+       "url": null,
+       "kind": "claim",
+       "tags": null,
+       "hitId": null,
+       "motion": "quote",
+       "source": null,
+       "userId": null,
+       "creator": null,
+       "brollSrc": null,
+       "claimIds": [
+        "C-0002-009"
+       ],
+       "onScreen": "When people lose weight, the body triggers natural biological changes that often make long-term weight regain common.",
+       "sizeUsed": null,
+       "videoPath": null,
+       "voiceover": "When weight is lost, the body triggers compensatory biological changes that often make weight regain common.",
+       "brollQuery": "stethoscope medical clipboard",
+       "creditLine": null,
+       "citation": "Wilding et al., 2022 · Diabetes Obes Metab",
+       "statEligible": false,
+       "stat": null
+      },
+      {
+       "n": 3,
+       "url": null,
+       "kind": "claim",
+       "tags": null,
+       "hitId": null,
+       "motion": "title",
+       "source": null,
+       "userId": null,
+       "creator": null,
+       "brollSrc": null,
+       "claimIds": [
+        "C-0002-001"
+       ],
+       "onScreen": "What the *clinical* trial observed.",
+       "sizeUsed": null,
+       "videoPath": null,
+       "voiceover": "In one exploratory trial, participants regained most of their lost weight over one year after stopping treatment.",
+       "brollQuery": "calendar turning pages",
+       "creditLine": null,
+       "citation": "Wilding et al., 2022 · Diabetes Obes Metab",
+       "statEligible": false,
+       "stat": null,
+       "motionCoercedFrom": "stat"
+      },
+      {
+       "n": 4,
+       "url": null,
+       "kind": "claim",
+       "tags": null,
+       "hitId": null,
+       "motion": "list",
+       "source": null,
+       "userId": null,
+       "creator": null,
+       "brollSrc": null,
+       "claimIds": [
+        "C-0002-002"
+       ],
+       "onScreen": "Nearly *half* maintained weight loss.",
+       "sizeUsed": null,
+       "videoPath": null,
+       "voiceover": "Yet, trial data showed nearly half the participants still maintained at least 5% weight loss one year later.",
+       "brollQuery": "fresh cooked rotis bowl",
+       "creditLine": null,
+       "citation": "Wilding et al., 2022 · Diabetes Obes Metab",
+       "statEligible": true,
+       "stat": "5%"
+      },
+      {
+       "n": 5,
+       "url": null,
+       "kind": "brand",
+       "tags": null,
+       "hitId": null,
+       "motion": "closing",
+       "source": null,
+       "userId": null,
+       "creator": null,
+       "brollSrc": null,
+       "claimIds": [],
+       "onScreen": "A planned *exit* with doctors.",
+       "sizeUsed": null,
+       "videoPath": null,
+       "voiceover": "Care must include a planned exit for real life. Clinical weight loss, doctor-led. steer · steerclub.com",
+       "brollQuery": "bright clean clinic room",
+       "creditLine": null,
+       "citation": null,
+       "statEligible": false,
+       "stat": null
+      }
+     ],
+     "reasoning": "Indian adults often navigate metabolic challenges alongside rich social food cultures and misleading online fitness trends. Grounding their journey in clinical evidence reframes weight care as biology rather than personal failure. Using structured carousel slides, relatable reels, and focused static cards makes complex medical insights reassuring and easy to absorb.",
+     "coreMessage": "Clinical weight care is doctor-led, grounded in biology, and built for Indian lifestyles rather than willpower alone.",
+     "citation": "Wilding et al., 2022 · Diabetes Obes Metab"
+    }
+   },
+   "STATIC": {
+    "violationsAsStored": [
+     "BLOCKING MISSING_QUALIFIER @static:headline: Exploratory claim without a qualifier: Weight regain is about *biology*.",
+     "BLOCKING CITATION_TEXT_IN_COPY @static:footnote: Legacy writer footnote present; citations must come from the paper metadata row"
+    ],
+    "violations": [
+     "BLOCKING MISSING_QUALIFIER @static:headline: Exploratory claim without a qualifier: Weight regain is about *biology*."
+    ],
+    "citations": [
+     "Wilding et al., 2022 · Diabetes Obes Metab"
+    ],
+    "enriched": {
+     "kind": "claim",
+     "blocks": [
+      {
+       "h": 29,
+       "w": 888,
+       "x": 96,
+       "y": 120,
+       "slide": null,
+       "blockId": "static.label"
+      },
+      {
+       "h": 193,
+       "w": 888,
+       "x": 96,
+       "y": 409,
+       "slide": null,
+       "blockId": "static.headline"
+      },
+      {
+       "h": 160,
+       "w": 888,
+       "x": 96,
+       "y": 667,
+       "slide": null,
+       "blockId": "static.support"
+      },
+      {
+       "h": 26,
+       "w": 888,
+       "x": 96,
+       "y": 859,
+       "slide": null,
+       "blockId": "static.footnote"
+      },
+      {
+       "h": 40,
+       "w": 888,
+       "x": 96,
+       "y": 1170,
+       "slide": null,
+       "blockId": "static.footer"
+      }
+     ],
+     "support": "In one trial follow-up, participants regained most lost weight after stopping, keeping a modest net loss.",
+     "blockMap": {
+      "static.support": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-001",
+        "C-0002-009"
+       ]
+      },
+      "static.footnote": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-001",
+        "C-0002-009"
+       ]
+      },
+      "static.headline": {
+       "kind": "claim",
+       "claimIds": [
+        "C-0002-001",
+        "C-0002-009"
+       ]
+      }
+     },
+     "claimIds": [
+      "C-0002-001",
+      "C-0002-009"
+     ],
+     "headline": "Weight regain is about *biology*.",
+     "reasoning": "Indian adults often navigate metabolic challenges alongside rich social food cultures and misleading online fitness trends. Grounding their journey in clinical evidence reframes weight care as biology rather than personal failure. Using structured carousel slides, relatable reels, and focused static cards makes complex medical insights reassuring and easy to absorb.",
+     "coreMessage": "Clinical weight care is doctor-led, grounded in biology, and built for Indian lifestyles rather than willpower alone.",
+     "citation": "Wilding et al., 2022 · Diabetes Obes Metab",
+     "paperCitation": "Wilding et al., 2022 · Diabetes Obes Metab",
+     "statEligible": false,
+     "stat": null
+    }
+   }
+  }
+ }
+}

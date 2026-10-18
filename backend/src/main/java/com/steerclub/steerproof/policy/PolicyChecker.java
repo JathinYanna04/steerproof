@@ -78,7 +78,9 @@ public class PolicyChecker {
             "suggests", "suggest", "suggested", "may", "might", "on average"
     );
     private static final Pattern QUALIFIER_PATTERN = Pattern.compile(
-            "(?i)\\b(?:" + String.join("|", EXPLORATORY_QUALIFIERS.stream().map(Pattern::quote).toList()) + ")\\b");
+            "(?i)\\b(?:" + String.join("|", EXPLORATORY_QUALIFIERS.stream().map(Pattern::quote).toList()) + ")\\b"
+                    // "in one clinical follow-up trial", "in this extension study", "in the exploratory analysis"
+                    + "|\\bin (?:this|one|the|a) (?:[\\w-]+ ){0,2}(?:trial|study|follow-up|extension|analysis)\\b");
 
     /**
      * Heuristic for the onScreen/headline exemption: a line is factual if it has a digit, a quantity word
@@ -89,14 +91,22 @@ public class PolicyChecker {
             "(?i)\\d|\\b(?:half|most|majority|nearly|almost|percent|quarter|third|twice|double|fewer|more than|less than|"
                     + "regain(?:ed|s)?|maintain(?:ed|s)?|kept|keep|lost|lose|losing|gain(?:ed|s)?|increas(?:ed|es|e)|"
                     + "decreas(?:ed|es|e)|reduc(?:ed|es|e)|rose|rises?|fell|falls?|dropped|drops?|improv(?:ed|es|e)|"
-                    + "lower(?:ed|s)?|rais(?:ed|es|e)|return(?:ed|s)?|worsen(?:ed|s)?|declin(?:ed|es|e)|show(?:ed|s)?|"
-                    + "found|led|cause[sd]?|triggers?|triggered|stay(?:ed|s)?|came back|comes back)\\b");
+                    + "lower(?:ed|s)?|rais(?:ed|es|e)|return(?:ed|s)?|worsen(?:ed|s)?|declin(?:ed|es|e)|"
+                    + "led|cause[sd]?|triggers?|triggered|stay(?:ed|s)?|came back|comes back)\\b");
 
     /** Citation-like text the writer must never produce; citations are built in code. */
     private static final Pattern CITATION_TEXT_PATTERN = Pattern.compile(
             "(?i)\\bet\\s+al\\b|\\(\\s*(?:19|20)\\d{2}\\s*\\)|,\\s*(?:19|20)\\d{2}\\b|\\bdoi\\b");
 
     static final int QUOTE_MAX_CHARS = 140;
+
+    /**
+     * Deterministic backstop for ILLUSTRATION_STATES_FACT (the Gemini check is primary): an illustration that
+     * talks about biology, hormones, signalling, metabolism or what the body does is stating a fact.
+     */
+    private static final Pattern ILLUSTRATION_FACT_PATTERN = Pattern.compile(
+            "(?i)\\b(?:biology|biological|hormones?|signal(?:s|ing|ling)?|metabolism|insulin|blood sugar|glucose|"
+                    + "cholesterol|blood pressure|calorie deficits?|(?:your|the) body (?:is|does|wants|needs|fights|tries|burns|stores))\\b");
 
     private List<String> associationWords = List.of(
             "associated", "linked", "correlated"
@@ -689,6 +699,13 @@ public class PolicyChecker {
             }
 
             // ILLUSTRATION_STATES_FACT (verdicts from the batched Gemini check)
+            if ("illustration".equalsIgnoreCase(b.kind())) {
+                Matcher fm = ILLUSTRATION_FACT_PATTERN.matcher(b.primary() + " " + b.secondary());
+                if (fm.find()) {
+                    violations.add(new ViolationResult("ILLUSTRATION_STATES_FACT", Severity.BLOCKING, b.loc(),
+                            "Illustration uses '" + fm.group() + "', which states a biological/medical fact (keyword backstop)", null));
+                }
+            }
             if ("illustration".equalsIgnoreCase(b.kind()) && findings != null) {
                 anyIllustration = true;
                 String reason = findings.factualTexts().get(type + "/" + b.loc());

@@ -181,4 +181,7 @@ rules:
 
   ILLUSTRATION_STATES_FACT:
     severity: BLOCKING
-    description: "Batched Gemini check (temperature 0, cached) on all illustration blocks; 'yes' or a failed check blocks."
+    description: >
+      Batched Gemini check (temperature 0, cached) on all illustration blocks; 'yes' or a failed check blocks.
+      Deterministic backstop: biology, biological, hormone(s), signal(l)ing, metabolism, insulin, blood sugar,
+      glucose, cholesterol, blood pressure, calorie deficit(s), "your/the body is|does|wants|needs|fights|tries|burns|stores".
