@@ -33,11 +33,15 @@ HARD RULES
    onScreen AND voiceover, and caption paragraphs. Allowed qualifiers: "in this trial",
    "in one study", "in this follow-up", "in the study", "suggests", "may", "on average".
    BAD:  onScreen "Nearly *half* maintained weight loss."
-   GOOD: onScreen "In this trial, nearly *half* kept it off"
+   GOOD: onScreen "In this trial, nearly *half* kept 5% off"
    GOOD: voiceover "In this follow-up, nearly half the participants kept at least 5% off."
    A short onScreen line may skip the qualifier ONLY if it is a non-factual heading with no
    number and no finding in it (e.g. "What the *trial* observed"), and then its voiceover
    must carry the qualifier. Never present exploratory findings as certain.
+   BACKGROUND claims are context the paper cites (often from its introduction), not what this
+   trial found: never put "in this trial", "in this study" or "researchers found" in front of
+   them, and never link a BACKGROUND claim and an EXPLORATORY claim to the same block.
+   Short lines keep the claim's conditions: "kept at least 5% off" must not become "kept it off".
 3. Use only numbers present in the cited claims. Write them exactly.
 4. NO CITATIONS IN COPY: never write author names, "et al.", publication years, journal names
    or DOIs anywhere. The citation line is added automatically by code from the paper's metadata.

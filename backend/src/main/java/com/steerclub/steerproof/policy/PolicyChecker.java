@@ -66,10 +66,6 @@ public class PolicyChecker {
             "proves", "always", "never", "will", "definitely", "shows that"
     );
 
-    private List<String> qualifierWords = List.of(
-            "suggests", "may", "in this study", "in the trial", "one study"
-    );
-
     /** Qualifiers that mark an EXPLORATORY finding as study-bound (MISSING_QUALIFIER). Keep in sync with ml-service copy_rules.py. */
     static final List<String> EXPLORATORY_QUALIFIERS = List.of(
             "in this trial", "in one trial", "in the trial",
@@ -539,7 +535,7 @@ public class PolicyChecker {
                 ClaimEntity ce = claimsById.get(cid);
                 if (ce != null && ce.getFindingClass() == FindingClass.EXPLORATORY) {
                     boolean hasCertainty = certaintyWords.stream().anyMatch(cw -> Pattern.compile("(?i)\\b" + Pattern.quote(cw) + "\\b").matcher(text).find());
-                    boolean hasQualifier = qualifierWords.stream().anyMatch(qw -> Pattern.compile("(?i)\\b" + Pattern.quote(qw) + "\\b").matcher(text).find());
+                    boolean hasQualifier = hasQualifier(text);
                     if (hasCertainty && !hasQualifier) {
                         violations.add(new ViolationResult("CERTAINTY_ON_EXPLORATORY", Severity.WARNING, location, "Certainty on exploratory claim without qualifier", cid));
                     }
@@ -578,7 +574,7 @@ public class PolicyChecker {
 
     /** Brand lines from docs/BRAND.md / voice_spec.yaml (lower case, without markup). */
     static final List<String> BRAND_PHRASES = List.of(
-            "not willpower", "doctor-led", "stop googling", "ask a doctor", "ask a steer doctor", "steerclub.com");
+            "willpower", "doctor-led", "stop googling", "ask a doctor", "steer", "steerclub.com");
 
     /** A copy block: its location, kind, linked claims, a short primary line and a longer secondary line. */
     private record Block(String loc, String kind, List<String> claimIds, String primary, String primaryName,
@@ -689,13 +685,26 @@ public class PolicyChecker {
             if (isClaim) {
                 for (String text : List.of(b.primary(), b.secondary())) {
                     String lower = text.replace("*", "").toLowerCase(Locale.ROOT);
-                    String hit = BRAND_PHRASES.stream().filter(lower::contains).findFirst().orElse(null);
+                    String hit = BRAND_PHRASES.stream()
+                            .filter(bp -> Pattern.compile("\\b" + Pattern.quote(bp) + "\\b").matcher(lower).find())
+                            .findFirst().orElse(null);
                     if (hit != null) {
                         violations.add(new ViolationResult("BRAND_LINE_AS_CLAIM", Severity.BLOCKING, b.loc(),
                                 "Brand line '" + hit + "' in a cited claim block; make it a separate kind=brand block", first));
                         break;
                     }
                 }
+            }
+
+            // MIXED_FINDING_CLASSES: background context (often the paper's introduction) next to a trial
+            // finding in one block reads as if the trial found it. The writer is told to split them.
+            boolean linksExploratory = b.claimIds().stream().map(claimsById::get)
+                    .anyMatch(c -> c != null && c.getFindingClass() == FindingClass.EXPLORATORY);
+            boolean linksBackground = b.claimIds().stream().map(claimsById::get)
+                    .anyMatch(c -> c != null && c.getFindingClass() == FindingClass.BACKGROUND);
+            if (linksExploratory && linksBackground) {
+                violations.add(new ViolationResult("MIXED_FINDING_CLASSES", Severity.WARNING, b.loc(),
+                        "Block links a BACKGROUND and an EXPLORATORY claim; check that background context is not presented as a trial finding", first));
             }
 
             // MISSING_QUALIFIER: every block linked to an EXPLORATORY claim, in every format.

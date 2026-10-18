@@ -384,4 +384,27 @@ class AccuracyRulesTest {
         cap.put("hashtags", List.of("#a", "#b", "#c", "#d", "#e", "#f", "#g", "#h"));
         assertTrue(has(check(AssetType.CAPTION, cap, claims()), "HYPE"));
     }
+
+    @Test
+    void captionSignoffAddedInCodeWhenWriterDropsIt() {
+        Map<String, Object> cap = new LinkedHashMap<>();
+        cap.put("paragraphs", new ArrayList<>(List.of(
+                new LinkedHashMap<>(Map.of("text", "Across 29 long-term studies, weight often returned.", "kind", "claim", "claimIds", List.of("C-2"))),
+                new LinkedHashMap<>(Map.of("text", "Stop Googling. Ask a doctor.", "kind", "brand", "claimIds", List.of())))));
+        cap.put("hashtags", List.of("#a", "#b", "#c", "#d", "#e", "#f", "#g", "#h"));
+        enricher.enrich(AssetType.CAPTION, cap, hall(), claims());
+        assertFalse(has(check(AssetType.CAPTION, cap, claims()), "MISSING_SIGNOFF"));
+        enricher.enrich(AssetType.CAPTION, cap, hall(), claims());
+        assertEquals(3, ((List<?>) cap.get("paragraphs")).size(), "sign-off is added once");
+    }
+
+    @Test
+    void backgroundAndExploratoryInOneBlockWarns() {
+        Map<String, ClaimEntity> cl = new HashMap<>(claims());
+        cl.put("C-3", claim("C-3", FindingClass.EXPLORATORY, "In this trial, nearly half kept at least 5% off."));
+        Map<String, Object> sta = new LinkedHashMap<>(Map.of("headline", "In this trial, *half* kept 5% off",
+                "support", "In this trial, nearly half kept at least 5% off.", "kind", "claim", "claimIds", List.of("C-2", "C-3")));
+        assertTrue(check(AssetType.STATIC, sta, cl).stream()
+                .anyMatch(v -> "MIXED_FINDING_CLASSES".equals(v.rule()) && v.severity() == Severity.WARNING));
+    }
 }

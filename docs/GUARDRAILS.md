@@ -13,7 +13,7 @@ Neither layer replaces the doctor. They make review faster and catch obvious fai
 | `DRUG_BRAND` | BLOCKING | Case-insensitive word match: ozempic, wegovy, rybelsus, mounjaro, zepbound, saxenda, victoza, trulicity, orlistat brand names (xenical, alli), contrave, qsymia, metformin brand names (glycomet, glucophage) |
 | `DRUG_GENERIC_PROMO` | WARNING | semaglutide, tirzepatide, liraglutide, dulaglutide appear in copy. Allowed only in a `claim` block whose claim text contains the same word. Flag for the doctor |
 | `PROMISE` | BLOCKING | Regex: `\b(lose|drop|shed)\s+\d+\s*(kg|kilo|kilos|pounds|lbs)\b`, `\bin\s+\d+\s*(days|weeks)\b` near lose/weight, "guarantee(d)", "results in", "you will lose" |
-| `HYPE` | BLOCKING | miracle, magic, secret, hack, cure(s), melt (fat), detox, burn fat fast, revolutionary, breakthrough, instantly, effortless |
+| `HYPE` | BLOCKING | miracle, magic, secret, hack, cure(s), melt (fat), detox, burn fat fast, revolutionary, breakthrough, instantly, effortless, save(s) lives, life-saving |
 | `FEAR_SHAME` | BLOCKING | lazy, fat people, obese people (person-first required), ugly, disgusting, "no excuses", "you're killing", "ticking time bomb", deadly |
 | `BODY` | BLOCKING | before and after, before/after, bikini body, beach body, transformation (in a body sense), flat belly |
 | `ALL_CAPS` | BLOCKING | any token of 4+ letters in all caps, except allowlist: GLP-1, HbA1c, BMI, ICMR, INDIAB, DNA, RCT, STEP, SURMOUNT, PCOS, WHO, ICMR-INDIAB |
@@ -25,6 +25,14 @@ Neither layer replaces the doctor. They make review faster and catch obvious fai
 | `CAUSAL_ON_ASSOCIATION` | WARNING | the linked claim text contains "associated"/"linked"/"correlated", but the block uses causes/leads to/makes you/because of |
 | `MISSING_SIGNOFF` | BLOCKING | the last carousel slide, last reel scene, or caption does not contain "steerclub.com" |
 | `EMOJI_IN_ASSET` | WARNING | emoji in slide/static/onScreen text (allowed in caption) |
+| `CITATION_ON_NONCLAIM` | BLOCKING | a citation line or a reel quote card (which carries a source line) on a block that is not `kind=claim` (the carousel source slide is the one exception) |
+| `CITATION_TEXT_IN_COPY` | BLOCKING | writer copy contains author names, "et al.", a year or a DOI. Citations are built in code from the paper's own metadata row (`CitationHelper`), never by the LLM |
+| `QUOTE_NOT_CLAIM_COPY` | BLOCKING | a reel `quote` scene whose text is not the approved claim copy (editedCopy, else consumerDraft) verbatim |
+| `MISSING_QUALIFIER` | BLOCKING | a block linked to an EXPLORATORY claim lacks a qualifier ("in this trial", "in one study", "in this follow-up", "in the study", "suggests", "may", "on average"), in every format: slide headline/body, static headline/support, reel onScreen and voiceover, caption paragraph. A short reel onScreen line may rely on the voiceover's qualifier only if it is a non-factual heading (no number, no finding verb) |
+| `ILLUSTRATION_STATES_FACT` | BLOCKING | an `illustration` block states or implies a medical, biological or causal fact. One batched Gemini check per write (temperature 0, cached) plus a keyword backstop. If the check cannot run, the asset is blocked rather than passed |
+| `BRAND_LINE_AS_CLAIM` | BLOCKING | a `kind=claim` block contains a voice-spec brand line ("not willpower", "doctor-led", "stop Googling", "ask a doctor", "steerclub.com"). Brand lines are not findings, so they cannot carry a citation |
+
+Stat treatment: a block is `statEligible` only when its number is an outcome value (%, kg, kcal, mmHg, mg/dL, ...), never a count of studies, trials, participants, patients, people or years. The renderer shows the big number only when `statEligible` is true.
 
 Implementation notes:
 - Keep the rules in `src/main/resources/policy/rules.yaml` (word lists + regex + severity) so they can be edited without code.

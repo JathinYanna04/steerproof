@@ -147,5 +147,12 @@ def test_qualifier_phrases_with_descriptors():
 
 def test_brand_phrase_detected_for_claim_blocks():
     from app.write.copy_rules import brand_phrase
-    assert brand_phrase("It's *biology*, not willpower.") == "not willpower"
+    assert brand_phrase("It's *biology*, not willpower.") == "willpower"
     assert brand_phrase("Across 29 long-term studies, weight often returned.") is None
+
+
+def test_brand_phrase_word_boundaries():
+    from app.write.copy_rules import brand_phrase
+    assert brand_phrase("It isn't about willpower.") == "willpower"
+    assert brand_phrase("At Steer, we plan for the long term.") == "steer"
+    assert brand_phrase("Steering wheel at dawn") is None

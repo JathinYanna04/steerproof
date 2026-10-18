@@ -19,8 +19,13 @@ def validate_writer_result(
     exploratory = {c.claimId for c in claims if (c.findingClass or "").upper() == "EXPLORATORY"}
     approved_text = {c.claimId: _approved_text(c) for c in claims}
 
+    background = {c.claimId for c in claims if (c.findingClass or "").upper() == "BACKGROUND"}
+
     def linked_exploratory(ids: list[str]) -> bool:
         return any(cid in exploratory for cid in ids)
+
+    def mixes_classes(ids: list[str]) -> bool:
+        return linked_exploratory(ids) and any(cid in background for cid in ids)
 
     # 1. Carousel validation
     if not (5 <= len(result.carousel) <= 7):
@@ -101,11 +106,11 @@ def validate_writer_result(
     if not (8 <= len(result.caption.hashtags) <= 12):
         errors.append(f"Caption must have between 8 and 12 hashtags, found {len(result.caption.hashtags)}.")
 
-    errors.extend(_content_errors(result, linked_exploratory, approved_text))
+    errors.extend(_content_errors(result, linked_exploratory, approved_text, mixes_classes))
     return len(errors) == 0, errors
 
 
-def _content_errors(result: WriterResult, linked_exploratory, approved_text: dict) -> List[str]:
+def _content_errors(result: WriterResult, linked_exploratory, approved_text: dict, mixes_classes=lambda ids: False) -> List[str]:
     errors: List[str] = []
 
     # Citation text is built in code; the writer must never produce it.
@@ -141,6 +146,16 @@ def _content_errors(result: WriterResult, linked_exploratory, approved_text: dic
         if hit:
             errors.append(f"{where}: kind 'claim' contains the brand line '{hit}'. Brand lines are kind 'brand' "
                           f"and must be their own block.")
+
+    # A BACKGROUND claim is not a trial finding, so it never shares a block with an EXPLORATORY one.
+    linked_blocks = [(f"Slide {s.n}", s.claimIds) for s in result.carousel]
+    linked_blocks.append(("Static", result.static.claimIds))
+    linked_blocks += [(f"Scene {sc.n}", sc.claimIds) for sc in result.reel]
+    linked_blocks += [(f"Caption para {i + 1}", p.claimIds) for i, p in enumerate(result.caption.paragraphs)]
+    for where, ids in linked_blocks:
+        if mixes_classes(ids):
+            errors.append(f"{where}: links a BACKGROUND claim and an EXPLORATORY claim together; split them so "
+                          f"background context is not presented as a trial finding.")
 
     # Qualifiers on every block linked to an EXPLORATORY claim, in every format.
     for s in result.carousel:

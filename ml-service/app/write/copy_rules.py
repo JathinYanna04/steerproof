@@ -96,9 +96,10 @@ def qualifier_errors(primary: str, secondary: str, where: str, primary_name: str
 
 # Brand lines from the voice spec; they are not findings and never sit inside a claim block
 # (mirrors PolicyChecker.BRAND_PHRASES in the backend).
-BRAND_PHRASES = ["not willpower", "doctor-led", "stop googling", "ask a doctor", "ask a steer doctor", "steerclub.com"]
+BRAND_PHRASES = ["willpower", "doctor-led", "stop googling", "ask a doctor", "steer", "steerclub.com"]
+_BRAND_RES = [(b, re.compile(r"\b" + re.escape(b) + r"\b")) for b in BRAND_PHRASES]
 
 
 def brand_phrase(text: str) -> str | None:
     lower = text.replace("*", "").lower()
-    return next((b for b in BRAND_PHRASES if b in lower), None)
+    return next((b for b, rx in _BRAND_RES if rx.search(lower)), None)

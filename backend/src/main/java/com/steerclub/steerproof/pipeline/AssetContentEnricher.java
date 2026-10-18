@@ -88,12 +88,26 @@ public class AssetContentEnricher {
                 }
             }
             case CAPTION -> {
-                for (Map<String, Object> p : list(content.get("paragraphs"))) {
+                List<Map<String, Object>> paras = list(content.get("paragraphs"));
+                for (Map<String, Object> p : paras) {
                     p.put("citation", "claim".equals(p.get("kind")) ? citation : null);
+                }
+                // The sign-off is fixed brand copy (voice spec), so add it in code when the writer left it out.
+                boolean signedOff = paras.stream().anyMatch(p -> str(p.get("text")).contains("steerclub.com"));
+                if (!signedOff && content.get("paragraphs") instanceof List<?> raw) {
+                    Map<String, Object> signoff = new LinkedHashMap<>();
+                    signoff.put("kind", "brand");
+                    signoff.put("text", SIGNOFF);
+                    signoff.put("claimIds", new ArrayList<>());
+                    signoff.put("citation", null);
+                    ((List<Object>) raw).add(signoff);
                 }
             }
         }
     }
+
+    /** Sign-off from docs/BRAND.md / voice_spec.yaml. */
+    static final String SIGNOFF = "steer · steerclub.com";
 
     private void putStat(Map<String, Object> block, boolean isClaim, String text) {
         String value = isClaim ? statValue(text) : null;
