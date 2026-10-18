@@ -2,10 +2,19 @@
 
 ## SECTION A: FIXES FROM CHECKPOINTS 5–6
 
-### 1. B-Roll & Pexels API Key
-- **API Key Status in `.env`**: Evaluated `PEXELS_API_KEY` in `/home/yjr/steerproof/.env`. The key line was blank (`PEXELS_API_KEY=`).
-- **Graceful Fallback**: In accordance with `docs/RENDERING.md` (page 4), when the API key is unset or a query is denylisted, SteerProof renders authentic procedural motion backgrounds using Steer brand palettes (`#FBF8F3` cream, `#E6CBBD` blush, `#3D141A` maroon) with animated drifting soft geometric shapes.
-- **Credits & Licensing**: Recorded in `demo/CREDITS.md` with full attribution for typography (SIL OFL 1.1), royalty-free music (`calm-1.mp3`, Pixabay Content License), and video rendering guidelines.
+### 1. B-Roll Architecture: Curated Local Library + Pixabay API
+- **Pexels Transition**: Pexels paused new API keys. Replaced the b-roll engine with a robust two-layer pipeline while strictly maintaining the `/reel/broll` endpoint contract and response shape:
+  1. **Layer 1: Local Library (`storage/broll-library/`)**:
+     - Manifest `library.json` defines `{ file, tags, source, url, creator, seconds, orientation }`.
+     - Matching: Lowercase word overlap between `brollQuery` and tags; highest score wins; prefers portrait over landscape; duration >= scene length.
+     - Uniqueness: Never picks the same clip twice in one reel if another candidate matches.
+     - Landscape clips centre-cropped to 9:16 in Remotion (`objectFit: 'cover'`).
+     - Validation CLI: `python -m app.reel.library_check` probes files, verifies durations via `ffprobe`, verifies non-empty tags, and prints tag coverage.
+  2. **Layer 2: Pixabay API (Fallback)**:
+     - Activated only if no library match scores >= 1 tag and `PIXABAY_API_KEY` is set.
+     - Queries `https://pixabay.com/api/videos/` with denylist safety check; downloads `medium` or `large` size to `storage/broll/pixabay-{id}.mp4`.
+  3. **Fallback**: Returns null (authentic cream procedural motion background) if neither finds a match.
+- **Credits & Licensing**: Attributions are dynamically sourced from `library.json` into `sources.md` and recorded in `demo/CREDITS.md`. Removed Pexels from `.env.example`, `docs/ML_SERVICE.md`, and `README.md`.
 
 ### 2. Reel Length & Voiceover Budget (25–40s Target)
 - **Prompt Specification**: Updated `ml-service/app/prompts/writer.md` enforcing a strict voiceover budget of `≤ 85 words` total across all 5 scenes combined (≈ 17 words per scene).

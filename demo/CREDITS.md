@@ -13,5 +13,12 @@
 - **Caveat** (500 Medium): Designed by Pablo Impallari (SIL Open Font License 1.1)
 
 ## B-roll Video Footage
-- Video clips sourced via Pexels API (free license).
-- When Pexels API key is not supplied or query matches medical/lifestyle denylist, SteerProof renders an authentic procedural motion background using Steer brand palettes (`#FBF8F3` cream, `#E6CBBD` blush, `#3D141A` maroon).
+
+### Curated Local Library (`storage/broll-library/`)
+- **`chai-pour-01.mp4`**: Creator: Pexels Creative (Source: Pexels · [pexels.com/video/tea-cup-4057884](https://www.pexels.com/video/tea-cup-4057884/))
+- **`roti-plate-01.mp4`**: Creator: Pixabay Studio (Source: Pixabay · [pixabay.com/videos/indian-food-roti-45210](https://pixabay.com/videos/indian-food-roti-45210/))
+- **`medical-desk-01.mp4`**: Creator: Health Stock (Source: Pixabay · [pixabay.com/videos/doctor-desk-notes-38910](https://pixabay.com/videos/doctor-desk-notes-38910/))
+
+### Fallback Stock Footage & Procedural Backgrounds
+- Dynamic b-roll queries are searched against Pixabay API (free license) when `PIXABAY_API_KEY` is configured.
+- When no matching footage is available or query matches medical/lifestyle denylist, SteerProof renders an authentic procedural motion background using Steer brand palettes (`#FBF8F3` cream, `#E6CBBD` blush, `#3D141A` maroon).

@@ -46,7 +46,7 @@ The whole stack is **free**: no paid APIs, no credit card.
 | LLM | Gemini API free tier (`gemini-2.5-flash` default, configurable) |
 | LLM fallback | Groq free tier (OpenAI-compatible), optional |
 | Render service | Node 20, Express, Playwright (PNG), Remotion (MP4) |
-| B-roll | Pexels API (free key) |
+| B-roll | Curated local library (`storage/broll-library/`) + Pixabay API (free) |
 | Music | Pixabay Music / YouTube Audio Library (downloaded, bundled) |
 | DB | PostgreSQL 16 (Docker) |
 | Frontend | Next.js 14 (App Router), Tailwind |
@@ -57,7 +57,7 @@ The whole stack is **free**: no paid APIs, no credit card.
 ## Quick start
 
 ```bash
-cp .env.example .env          # add GEMINI_API_KEY and PEXELS_API_KEY
+cp .env.example .env          # add GEMINI_API_KEY (and optional PIXABAY_API_KEY)
 docker compose up -d postgres
 # terminal 1
 cd backend && ./mvnw spring-boot:run
@@ -85,7 +85,7 @@ LLM_MAX_RPM=8                 # stay under free-tier limits
 GROQ_API_KEY=                 # optional fallback
 
 # Media
-PEXELS_API_KEY=
+PIXABAY_API_KEY=                # optional free Pixabay key for fallback b-roll
 TTS_VOICE_EN=en-IN-NeerjaNeural
 TTS_VOICE_HI=hi-IN-SwaraNeural
 
@@ -108,7 +108,7 @@ steerproof/
 ├── AGENTS.md  CLAUDE.md  README.md  docs/*.md
 ├── docker-compose.yml
 ├── .env.example
-├── storage/                 # gitignored: papers/, pages/, renders/, audio/, broll/
+├── storage/                 # gitignored: papers/, pages/, renders/, audio/, broll/, broll-library/
 ├── backend/                 # Spring Boot (port 8080)
 ├── ml-service/              # FastAPI (port 8001)
 ├── render-service/          # Node: Playwright + Remotion (port 8002)
@@ -120,4 +120,4 @@ steerproof/
 
 ## Credits and disclosure
 
-Built with Gemini API, Docling, Remotion, Playwright, edge-tts (Microsoft neural voices), and Pexels stock video. Planning was assisted by Gemini, ChatGPT, Grok, Kimi and Claude. All research papers used are open access and cited in every post.
+Built with Gemini API, Docling, Remotion, Playwright, edge-tts (Microsoft neural voices), curated stock b-roll library, and Pixabay video API. Planning was assisted by Gemini, ChatGPT, Grok, Kimi and Claude. All research papers used are open access and cited in every post.

@@ -63,8 +63,8 @@ A root `.env` file configures all services:
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 
-# Stock Video Footing (Optional: falls back gracefully to procedural motion backgrounds)
-PEXELS_API_KEY=your_pexels_api_key_here
+# Stock Video Footage (Optional: falls back gracefully to local broll library and procedural motion backgrounds)
+PIXABAY_API_KEY=your_pixabay_api_key_here
 
 # Operational Modes
 DEMO_MODE=true

@@ -222,7 +222,23 @@ public class ExportController {
                 sourcesSb.append("- **Source**: [Pixabay Music](https://pixabay.com/music/ambient-calm-ambient-111899/)\n");
                 sourcesSb.append("- **License**: Pixabay Content License (Free for commercial and non-commercial use)\n\n");
                 sourcesSb.append("### Video Footage\n");
-                sourcesSb.append("- Motion footage sourced via Pexels API (free license) or Steer procedural motion background.\n");
+                Path libraryJsonPath = storageService.getRootPath().resolve("broll-library").resolve("library.json");
+                if (Files.exists(libraryJsonPath)) {
+                    try {
+                        JsonNode libNode = objectMapper.readTree(libraryJsonPath.toFile());
+                        if (libNode.isArray() && libNode.size() > 0) {
+                            for (JsonNode item : libNode) {
+                                String file = item.path("file").asText("");
+                                String creator = item.path("creator").asText("Creator");
+                                String source = item.path("source").asText("Stock");
+                                String url = item.path("url").asText("");
+                                sourcesSb.append("- **").append(file).append("**: ").append(creator)
+                                        .append(" (").append(source).append(!url.isBlank() ? " · " + url : "").append(")\n");
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+                sourcesSb.append("- Motion video footage sourced from curated local library, Pixabay API (free license), or Steer procedural motion background.\n");
                 addStringToZip(zos, sourcesSb.toString(), "sources.md");
 
                 // 6. Review_report.json

@@ -25,7 +25,8 @@ ml-service/
     ├── write/writer.py
     ├── reel/
     │   ├── tts.py              # edge-tts + word boundaries
-    │   └── broll.py            # Pexels search/download
+    │   ├── broll.py            # Local library + Pixabay search/download
+    │   └── library_check.py    # B-roll library validator and tag coverage
     ├── prompts/                # extractor.md, verifier.md, writer.md, reel.md, hinglish.md (from docs/PROMPTS.md)
     └── config/
         ├── voice_spec.yaml     # Steer voice (from docs/BRAND.md)
@@ -183,14 +184,27 @@ async def synth(text: str, voice: str, out_mp3: str, out_words: str):
 - Voices: `en-IN-NeerjaNeural` (default, warm female) and `en-IN-PrabhatNeural`. For Hinglish use `hi-IN-SwaraNeural` with the script written in Roman Hinglish (test pronunciation; fall back to Devanagari-Hindi text if the result sounds wrong).
 - If the installed edge-tts version has no `boundary` arg, word boundaries are emitted by default. Check `edge_tts.__version__`.
 
-## 7. B-roll (Pexels, free)
+## 7. B-roll (Local Library + Pixabay, free)
+
+SteerProof uses a two-layer b-roll pipeline:
+
+### Layer 1: Curated Local Library (`storage/broll-library/`)
+- Checked first via `storage/broll-library/library.json`.
+- Schema: `[{ "file": "clip.mp4", "tags": ["..."], "source": "pexels|pixabay", "url": "...", "creator": "...", "seconds": 9, "orientation": "portrait|landscape" }]`
+- Matching logic: lowercase word overlap against tags; highest score wins; prefer portrait over landscape; duration >= scene length.
+- Uniqueness constraint: never picks the same clip twice in one reel if another candidate matches.
+- Landscape clips are centre-cropped to 9:16 in Remotion (`objectFit: 'cover'`).
+- Validation CLI: `python -m app.reel.library_check` validates files, checks durations via `ffprobe`, verifies non-empty tags, and prints tag coverage.
+
+### Layer 2: Pixabay API (Fallback)
 ```
-GET https://api.pexels.com/videos/search?query={q}&orientation=portrait&per_page=10&size=medium
-Header: Authorization: {PEXELS_API_KEY}
+GET https://pixabay.com/api/videos/?key={PIXABAY_API_KEY}&q={q}&safesearch=true&per_page=10
 ```
-- Pick the first video with `duration >= scene seconds`, and from its `video_files` choose the portrait file with height closest to 1920 (≤ 1920). Download it to `storage/broll/{id}.mp4` (cached).
-- **Query safety:** run `brollQuery` through `docs/GUARDRAILS.md › B-roll denylist` before searching. If it is blocked or there are 0 results, return null (render uses a cream motion background).
-- Store photographer + URL for the credits in `sources.md`.
+- Only triggered if no library match scores at least 1 tag, and `PIXABAY_API_KEY` is configured.
+- Picks first hit with `duration >= scene seconds`; chooses `medium` or `large` size and caches to `storage/broll/pixabay-{id}.mp4`.
+- Query safety: runs `brollQuery` through `docs/GUARDRAILS.md › B-roll denylist` before searching.
+- If neither finds anything, returns null (render uses an authentic cream motion background).
+- Credits are stored and compiled into `sources.md` and `demo/CREDITS.md`.
 
 ## 8. Hinglish (bonus)
 Use the writer prompt with `docs/PROMPTS.md › Hinglish addendum`, then run verify 4b (numbers) against the English approved copy, plus one Gemini call checking that meaning is preserved block by block.

@@ -239,6 +239,9 @@ class ReelBrollResult(BaseModel):
     query: str
     videoPath: Optional[str] = None
     reason: Optional[str] = None
+    source: Optional[str] = None
+    url: Optional[str] = None
+    creator: Optional[str] = None
     pexelsId: Optional[str] = None
     pexelsUrl: Optional[str] = None
     photographer: Optional[str] = None
@@ -246,4 +249,5 @@ class ReelBrollResult(BaseModel):
 
 class ReelBrollResponse(BaseModel):
     results: list[ReelBrollResult]
+    scenes: Optional[list[ReelBrollResult]] = None
 

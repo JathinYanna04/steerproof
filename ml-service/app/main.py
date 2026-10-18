@@ -202,7 +202,7 @@ async def reel_broll_endpoint(req: ReelBrollRequest):
             storage_dir=settings.storage_dir,
             api_key=req.apiKey
         )
-        return ReelBrollResponse(results=results)
+        return ReelBrollResponse(results=results, scenes=results)
     except Exception as e:
         logger.error(f"Error in /reel/broll: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
