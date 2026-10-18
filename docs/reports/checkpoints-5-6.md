@@ -268,5 +268,40 @@ Tested `brollQuery: "belly fat"` against `docs/GUARDRAILS.md` denylist:
 ```
 Result: Denylist correctly rejected the forbidden query with `reason: "DENYLIST"`.
 
+---
 
+## PART 4: REEL COMPOSITION IN REMOTION
 
+### 1. Remotion Composition Setup (`render-service/remotion/`)
+- **Root.tsx**: Defines `<Composition id="SteerReel" />` with dynamic `calculateMetadata` setting duration based on exact scene voiceover durations plus transitions.
+- **Reel.tsx**:
+  - Full 1080×1920 vertical canvas at 30 fps.
+  - Multi-layer architecture:
+    - Layer 1: Background (procedural animated drifting blush shapes or Pexels video with wash overlay).
+    - Layer 2: Animated text overlay (fade + 40px translateY slide-up over 12 frames, delayed italic accent phrases, dynamic stat counter animation from 0 to target value).
+    - Layer 3: Dynamic karaoke subtitles pill container, showing 3–5 word chunks, highlighting the currently spoken word in Rust (`#C04E2A`) on cream or Blush (`#E6CBBD`) on maroon.
+    - Layer 4: Persistent overlays (Caveat *"an everyday example"* for illustrations, Inter citation pill for claims).
+    - Layer 5: Sequenced per-scene voiceover audio (`<Audio />`).
+    - Layer 6: Watermark & status bar (Steer wordmark top-left, *"draft · pending doctor review"* pill top-right).
+    - Layer 7: Royalty-free background music (`calm-1.mp3`) at 0.08 volume with fade-in and fade-out.
+- **reel.ts**: Concurrency-safe render queue (`isRendering` mutex enforcing 1 Remotion render at a time).
+
+### 2. Output Video Details (`P-0002/reel.mp4`)
+- **Video Path**: `storage/renders/P-0002/reel.mp4`
+- **Duration**: 48.68 seconds (1,460 frames at 30.0 fps)
+- **Resolution**: 1080 × 1920 (9:16 vertical video)
+- **Video Stream**: H.264 / AVC (High profile, level 4.0, yuv420p, 306 kbps video bitrate)
+- **Audio Stream**: AAC-LC stereo, 48,000 Hz, 317 kbps audio bitrate (remixed voiceover + background music)
+- **File Size**: 3,852,377 bytes (~3.7 MB)
+- **Frame Grabs Contact Sheet**: `storage/debug/P-0002-reel-frames.png` (5 frames captured at 10%, 30%, 50%, 70%, 90% and tiled into a 5400×1920 composite).
+
+### 3. Subtitle Sync Verification
+Sampled 3 words across distinct scenes and checked the Edge TTS JSON word timestamp against the exact video frame where the word turns Rust (`#C04E2A`):
+
+| Scene | Word | Audio JSON Start Time | Global Video Target Time | First Video Frame Rust | Video Frame Time | Delta | Status |
+|:---|:---|:---|:---|:---|:---|:---|:---|
+| **Scene 1** | *"question"* | 771 ms | 771.0 ms | Frame 24 | 800.0 ms | **+29 ms** | **PASS** (<= ±150ms) |
+| **Scene 2** | *"lost"* | 876 ms | 9,942.7 ms | Frame 299 | 9,966.7 ms | **+24 ms** | **PASS** (<= ±150ms) |
+| **Scene 3** | *"exploratory"* | 574 ms | 18,240.7 ms | Frame 548 | 18,266.7 ms | **+26 ms** | **PASS** (<= ±150ms) |
+
+All 3 sampled words aligned within 24–29 ms (< 1 video frame at 30 fps), demonstrating near-perfect sync between Azure neural audio synthesis and Remotion subtitles.

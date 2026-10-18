@@ -12,7 +12,7 @@ export interface SceneData {
   durationMs: number;
   words: Word[];
   brollSrc?: string | null;
-  kind?: string;
+  kind?: 'claim' | 'illustration' | 'brand';
   claimIds?: string[];
 }
 

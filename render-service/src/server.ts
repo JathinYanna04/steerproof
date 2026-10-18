@@ -63,11 +63,60 @@ app.post('/static', async (req, res) => {
   }
 });
 
-// Reel endpoint (placeholder for Section D)
+// Reel endpoint
 app.post('/reel', async (req, res) => {
-  res.json({ status: 'ok', message: 'Reel rendering will be handled in section D' });
+  try {
+    const { paperId, scenes, citation, draft, musicSrc } = req.body;
+    if (!paperId || !scenes || !Array.isArray(scenes)) {
+      return res.status(400).json({ error: 'INVALID_INPUT', message: 'paperId and scenes array required' });
+    }
+
+    const host = req.get('host') || `localhost:${PORT}`;
+    const baseUrl = `http://${host}`;
+
+    // Format scene URLs to absolute http URLs
+    const processedScenes = scenes.map(s => {
+      let audioUrl = s.audioSrc || s.mp3Path || '';
+      if (audioUrl && !audioUrl.startsWith('http')) {
+        audioUrl = `${baseUrl}/files/${audioUrl.replace(/^\/+/, '')}`;
+      }
+
+      let brollUrl = s.brollSrc || s.videoPath || null;
+      if (brollUrl && !brollUrl.startsWith('http')) {
+        brollUrl = `${baseUrl}/files/${brollUrl.replace(/^\/+/, '')}`;
+      }
+
+      return {
+        ...s,
+        audioSrc: audioUrl,
+        brollSrc: brollUrl,
+      };
+    });
+
+    const isDraft = draft !== undefined ? Boolean(draft) : true;
+    const finalMusic = musicSrc || `${baseUrl}/assets/music/calm-1.mp3`;
+
+    const { renderReel } = await import('./reel.js');
+    const result = await renderReel(
+      paperId,
+      {
+        scenes: processedScenes,
+        citation: citation || '',
+        draft: isDraft,
+        musicSrc: finalMusic,
+      },
+      STORAGE_DIR
+    );
+
+    res.json(result);
+  } catch (err: any) {
+    console.error('Error in /reel:', err);
+    res.status(500).json({ error: 'REEL_RENDER_FAILED', message: err.message });
+  }
 });
 
 app.listen(PORT, () => {
   console.log(`Render service listening on port ${PORT}, STORAGE_DIR: ${STORAGE_DIR}`);
+  // Warm up Remotion bundle in background
+  import('./reel.js').then(m => m.getBundleLocation()).catch(() => {});
 });
