@@ -8,6 +8,5 @@
 
  :: Spring Boot ::                (v3.3.4)
 
-2026-10-18T12:14:44.736+05:30  INFO 58532 --- [steerproof-backend] [           main] c.s.s.SteerproofBackendApplication       : Starting SteerproofBackendApplication v0.0.1-SNAPSHOT using Java 27 with PID 58532 (/home/yjr/steerproof/backend/target/steerproof-backend-0.0.1-SNAPSHOT.jar started by yjr in /home/yjr/steerproof/backend)
-2026-10-18T12:14:44.740+05:30  INFO 58532 --- [steerproof-backend] [           main] c.s.s.SteerproofBackendApplication       : No active profile set, falling back to 1 default profile: "default"
-2026-10-18T12:14:46.703+05:30  INFO 58532 --- [steerproof-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-18T12:25:07.000+05:30  INFO 59713 --- [steerproof-backend] [           main] c.s.s.SteerproofBackendApplication       : Starting SteerproofBackendApplication v0.0.1-SNAPSHOT using Java 27 with PID 59713 (/home/yjr/steerproof/backend/target/steerproof-backend-0.0.1-SNAPSHOT.jar started by yjr in /home/yjr/steerproof/backend)
+2026-10-18T12:25:07.005+05:30  INFO 59713 --- [steerproof-backend] [           main] c.s.s.SteerproofBackendApplication       : No active profile set, falling back to 1 default profile: "default"
