@@ -4,7 +4,7 @@
 *.env
 
 # Local storage and cache
-storage/
+/storage/
 .cache/
 __pycache__/
 *.pyc
