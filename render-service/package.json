@@ -5,7 +5,8 @@
   "main": "src/server.ts",
   "scripts": {
     "start": "tsx src/server.ts",
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "lint:colors": "node -e \"const { execSync } = require('child_process'); const res = execSync('grep -rnE \\\"#[0-9a-fA-F]{3,6}\\\" --exclude=\\\"brand.ts\\\" templates/ src/ remotion/ || true', { encoding: 'utf-8' }).trim(); if (res) { console.error('Hex literals found outside brand.ts:\\n' + res); process.exit(1); } else { console.log('lint:colors passed! No hex literals found outside brand.ts.'); }\""
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.536",

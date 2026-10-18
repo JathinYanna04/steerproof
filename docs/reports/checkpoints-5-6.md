@@ -37,3 +37,24 @@ Downloaded from Google Fonts CDN into `render-service/assets/fonts/`:
 - **Track**: Calm Ambient (ID: 111899)
 - **File**: `render-service/assets/music/calm-1.mp3` (4.5 MB, 147.2s duration, 256 kbps MP3)
 - **Attribution & Source**: Documented in `demo/CREDITS.md`.
+
+---
+
+## PART 1: RENDER-SERVICE SKELETON
+
+### 1. Service Layout
+Built with Node 20 (`v26.11.1`), TypeScript, ESM, Express on port 8002:
+- `render-service/src/brand.ts`: Single source of truth for Steer colour tokens (`cream: #F5EBDF`, `rust: #C04E2A`, `maroon: #661414`, `ink: #351D1D`, `clay: #B58777`, `blush: #E6CBBD`, `softPaper: #F8F2EB`).
+- `render-service/src/escape.ts`: Implemented `escapeHtml` (encodes `&`, `<`, `>`, `"`, `'`) and `toHeadline` (safely translates `*word*` to `<em class="accent">word</em>`).
+- `render-service/src/html.ts`: Generates semantic HTML for slides and statics, injecting CSS variables from `brand.ts` and inlining base64 fonts for 100% offline local rendering.
+- `render-service/src/shoot.ts`: Playwright singleton browser runner with font verification, automated text overflow step-down, block bounding rect extraction, and full-resolution screenshot capture.
+- `render-service/src/server.ts`: Express API exposing `POST /carousel`, `POST /static`, `POST /reel`, `GET /health`, static `/files` from `STORAGE_DIR`, and static `/assets` from `assets/`.
+
+### 2. Zero Hex Literal Rule (`npm run lint:colors`)
+Added lint script to `render-service/package.json` that audits all code in `templates/`, `src/`, and `remotion/` for any hex colors (`#[0-9a-fA-F]{3,6}`) outside `brand.ts`:
+```
+$ npm run lint:colors
+lint:colors passed! No hex literals found outside brand.ts.
+```
+Result: 0 hex literals found outside `brand.ts`.
+

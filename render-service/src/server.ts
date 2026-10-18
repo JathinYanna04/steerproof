@@ -12,6 +12,7 @@ app.use(express.json({ limit: '50mb' }));
 
 // Serve storage files for external preview or remotion if needed
 app.use('/files', express.static(STORAGE_DIR));
+app.use('/assets', express.static(path.resolve(__dirname, '../assets')));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'render-service', port: PORT });
@@ -29,6 +30,12 @@ app.post('/carousel', async (req, res) => {
     res.json(result);
   } catch (err: any) {
     console.error('Error in /carousel:', err);
+    if (err.name === 'TextOverflowError') {
+      return res.status(422).json({ error: 'TEXT_OVERFLOW', blockId: err.blockId, message: err.message });
+    }
+    if (err.name === 'FontNotLoadedError') {
+      return res.status(500).json({ error: 'FONT_NOT_LOADED', message: err.message });
+    }
     res.status(500).json({ error: 'RENDER_FAILED', message: err.message });
   }
 });
@@ -46,6 +53,12 @@ app.post('/static', async (req, res) => {
     res.json(result);
   } catch (err: any) {
     console.error('Error in /static:', err);
+    if (err.name === 'TextOverflowError') {
+      return res.status(422).json({ error: 'TEXT_OVERFLOW', blockId: err.blockId, message: err.message });
+    }
+    if (err.name === 'FontNotLoadedError') {
+      return res.status(500).json({ error: 'FONT_NOT_LOADED', message: err.message });
+    }
     res.status(500).json({ error: 'RENDER_FAILED', message: err.message });
   }
 });

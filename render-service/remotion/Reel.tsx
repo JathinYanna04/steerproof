@@ -8,16 +8,10 @@ import {
   useVideoConfig
 } from 'remotion';
 import { ReelProps, SceneData, Word } from './types.js';
+import { brand } from '../src/brand.js';
 
-const BRAND = {
-  cream: '#FBF8F3',
-  maroon: '#3D141A',
-  rust: '#C04E2A',
-  blush: '#E6CBBD',
-  ink: '#1A1110',
-  softPaper: '#F8F2EB',
-  clay: '#6E5D57',
-};
+const BRAND = brand;
+
 
 // Subtitle component: displays current window of 3-5 words
 const Subtitles: React.FC<{ words: Word[]; sceneTimeMs: number }> = ({ words, sceneTimeMs }) => {
