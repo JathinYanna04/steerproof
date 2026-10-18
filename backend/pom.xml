@@ -74,6 +74,10 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                    <!-- Tests always run on the separate steerproof_test DB and a throwaway storage dir. -->
+                    <systemPropertyVariables>
+                        <spring.profiles.active>test</spring.profiles.active>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
             <plugin>

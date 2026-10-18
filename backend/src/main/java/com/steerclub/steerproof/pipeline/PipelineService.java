@@ -145,7 +145,7 @@ public class PipelineService {
                 run.setOk(true);
                 run.setLlmCalls(0);
                 run.setCacheHits(0);
-                pipelineRunRepository.save(run);
+                pipelineRunRepository.save(withModel(run));
 
                 PaperStatus prevStatus = paper.getStatus();
                 paper.setStatus(PaperStatus.EXTRACTING);
@@ -186,7 +186,7 @@ public class PipelineService {
                 run.setOk(true);
                 run.setLlmCalls(extractRes.llmCalls());
                 run.setCacheHits(extractRes.cacheHits());
-                pipelineRunRepository.save(run);
+                pipelineRunRepository.save(withModel(run));
 
                 PaperStatus prevStatus = paper.getStatus();
                 paper.setStatus(PaperStatus.VERIFYING);
@@ -373,7 +373,7 @@ public class PipelineService {
                 run.setOk(true);
                 run.setLlmCalls(verifyRes.llmCalls());
                 run.setCacheHits(verifyRes.cacheHits());
-                pipelineRunRepository.save(run);
+                pipelineRunRepository.save(withModel(run));
 
                 PaperStatus prevStatus = paper.getStatus();
                 paper.setStatus(PaperStatus.AWAITING_CLAIM_REVIEW);
@@ -449,7 +449,7 @@ public class PipelineService {
                 run.setOk(true);
                 run.setLlmCalls(writeRes.llmCalls());
                 run.setCacheHits(writeRes.cacheHits());
-                pipelineRunRepository.save(run);
+                pipelineRunRepository.save(withModel(run));
 
                 PaperStatus prevStatus = paper.getStatus();
                 paper.setStatus(PaperStatus.RENDERING);
@@ -558,7 +558,7 @@ public class PipelineService {
                 run.setOk(true);
                 run.setLlmCalls(0);
                 run.setCacheHits(0);
-                pipelineRunRepository.save(run);
+                pipelineRunRepository.save(withModel(run));
 
                 PaperStatus prevStatus = paper.getStatus();
                 paper.setStatus(PaperStatus.AWAITING_ASSET_REVIEW);
@@ -575,7 +575,7 @@ public class PipelineService {
             failedRun.setEndedAt(Instant.now());
             failedRun.setOk(false);
             failedRun.setError(e.getMessage());
-            pipelineRunRepository.save(failedRun);
+            pipelineRunRepository.save(withModel(failedRun));
 
             paper.setStatus(PaperStatus.FAILED);
             paper.setFailedStage(currentStage);
@@ -583,6 +583,19 @@ public class PipelineService {
             paperRepository.save(paper);
             auditService.log("system", "STATUS_CHANGE", "paper", paperId, null, PaperStatus.FAILED);
         }
+    }
+
+    /** Records which model or tool ran the stage. LLM stages report the model the ml-service is configured with. */
+    private PipelineRunEntity withModel(PipelineRunEntity run) {
+        if (run.getModel() == null) {
+            switch (run.getStage()) {
+                case "PARSE" -> run.setModel("docling");
+                case "EXTRACT", "VERIFY", "WRITE" -> run.setModel(mlServiceClient.geminiModel());
+                case "RENDER" -> run.setModel("playwright + remotion, edge-tts");
+                default -> { }
+            }
+        }
+        return run;
     }
 
     private MlServiceClient.PassageDto toPassageDto(PassageEntity p) {

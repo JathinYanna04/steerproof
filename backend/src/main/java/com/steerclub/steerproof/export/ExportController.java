@@ -55,6 +55,10 @@ public class ExportController {
     private final StorageService storageService;
     private final ObjectMapper objectMapper;
 
+    /** Where export regenerates the credits file. Blank = <STORAGE_DIR>/../demo/CREDITS.md; "none" disables it (tests). */
+    @org.springframework.beans.factory.annotation.Value("${app.credits-file:}")
+    private String creditsFile;
+
     public ExportController(
             PaperRepository paperRepository,
             AssetRepository assetRepository,
@@ -346,7 +350,12 @@ public class ExportController {
 
     private void regenerateDemoCredits() {
         try {
-            Path creditsPath = storageService.getRootPath().getParent().resolve("demo").resolve("CREDITS.md");
+            if ("none".equalsIgnoreCase(creditsFile)) {
+                return;
+            }
+            Path creditsPath = (creditsFile == null || creditsFile.isBlank())
+                    ? storageService.getRootPath().getParent().resolve("demo").resolve("CREDITS.md")
+                    : Path.of(creditsFile);
             List<PaperEntity> exportedPapers = paperRepository.findAll().stream()
                     .filter(p -> p.getStatus() == PaperStatus.EXPORTED)
                     .toList();

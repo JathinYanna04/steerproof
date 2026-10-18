@@ -29,6 +29,17 @@ public class MlServiceClient {
                 .build();
     }
 
+    /** The Gemini model the running ml-service is configured with (all LLM stages use it), or null if unreachable. */
+    public String geminiModel() {
+        try {
+            Map<?, ?> health = restClient.get().uri("/health").retrieve().body(Map.class);
+            Object model = health != null ? health.get("gemini_model") : null;
+            return model != null ? model.toString() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public FetchUrlResponse fetchUrl(String paperId, String url) {
         return restClient.post()
                 .uri("/fetch-url")

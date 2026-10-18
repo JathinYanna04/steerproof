@@ -161,7 +161,7 @@ public class Gate2AndExportIntegrationTest {
         // 3. Try to approve CAROUSEL without overrideWarnings -> Should fail with 422 ASSET_BLOCKED
         ResponseEntity<?> approveFail = assetController.approveAsset(
                 carAssetId,
-                new AssetController.AssetApprovalRequest("Reviewer", 10, false)
+                new AssetController.AssetApprovalRequest("Test Reviewer", 10, false)
         );
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, approveFail.getStatusCode());
         @SuppressWarnings("unchecked")
@@ -171,7 +171,7 @@ public class Gate2AndExportIntegrationTest {
 
         // 4. Doctor rejects the bad claim -> asset becomes STALE!
         claimService.reviewClaim(claimId, new ClaimService.ClaimReviewRequest(
-                "REJECT", "Reviewer", null, null, "Exploratory claim is not clinically definitive", 15
+                "REJECT", "Test Reviewer", null, null, "Exploratory claim is not clinically definitive", 15
         ));
 
         AssetEntity staleAsset = assetRepository.findById(carAssetId).orElseThrow();
@@ -205,12 +205,12 @@ public class Gate2AndExportIntegrationTest {
         // 7. Approve the regenerated asset
         ResponseEntity<?> approveOk = assetController.approveAsset(
                 carAssetId,
-                new AssetController.AssetApprovalRequest("Jathin Reddy Yanna (non-clinician reviewer)", 12, false)
+                new AssetController.AssetApprovalRequest("Test Reviewer", 12, false)
         );
         assertEquals(HttpStatus.OK, approveOk.getStatusCode());
         AssetEntity approvedCar = assetRepository.findById(carAssetId).orElseThrow();
         assertEquals(AssetStatus.APPROVED, approvedCar.getStatus());
-        assertEquals("Jathin Reddy Yanna (non-clinician reviewer)", approvedCar.getApprovedBy());
+        assertEquals("Test Reviewer", approvedCar.getApprovedBy());
 
         // 8. Call export -> Should succeed with 200 OK!
         ResponseEntity<?> exportOk = exportController.exportPaper(paperId);

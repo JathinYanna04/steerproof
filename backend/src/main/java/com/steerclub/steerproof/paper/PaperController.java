@@ -16,6 +16,7 @@ import com.steerclub.steerproof.pipeline.PipelineService;
 import com.steerclub.steerproof.storage.StorageService;
 import com.steerclub.steerproof.metric.HumanEventEntity;
 import com.steerclub.steerproof.metric.HumanEventRepository;
+import com.steerclub.steerproof.metric.PaperMetricsService;
 import com.steerclub.steerproof.review.ReviewService;
 import com.steerclub.steerproof.common.Risk;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +47,7 @@ public class PaperController {
     private final ObjectMapper objectMapper;
     private final ReviewService reviewService;
     private final HumanEventRepository humanEventRepository;
+    private final PaperMetricsService metricsService;
 
     @Value("${app.demo-mode:true}")
     private boolean demoMode;
@@ -60,7 +62,8 @@ public class PaperController {
             IdGenerator idGenerator,
             ObjectMapper objectMapper,
             ReviewService reviewService,
-            HumanEventRepository humanEventRepository
+            HumanEventRepository humanEventRepository,
+            PaperMetricsService metricsService
     ) {
         this.paperRepository = paperRepository;
         this.passageRepository = passageRepository;
@@ -72,6 +75,7 @@ public class PaperController {
         this.objectMapper = objectMapper;
         this.reviewService = reviewService;
         this.humanEventRepository = humanEventRepository;
+        this.metricsService = metricsService;
     }
 
     @PostConstruct
@@ -130,9 +134,14 @@ public class PaperController {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("paperId", p.getId());
             map.put("title", p.getTitle());
+            map.put("authors", p.getAuthors());
+            map.put("year", p.getYear());
+            map.put("journal", p.getJournal());
+            map.put("doi", p.getDoi());
+            map.put("pdfPath", p.getPdfPath());
             map.put("status", p.getStatus().name());
             map.put("createdAt", p.getCreatedAt());
-            map.put("stats", computePaperStats(p.getId()));
+            map.put("stats", metricsService.stats(p.getId()));
             return map;
         }).toList();
     }
@@ -141,18 +150,6 @@ public class PaperController {
     public Map<String, Object> getPaper(@PathVariable("id") String id) {
         PaperEntity paper = paperRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + id));
-
-        List<PipelineRunEntity> runs = pipelineRunRepository.findByPaperIdOrderByStartedAtAsc(id);
-        List<Map<String, Object>> stages = runs.stream().map(r -> {
-            Map<String, Object> sm = new LinkedHashMap<>();
-            sm.put("stage", r.getStage());
-            sm.put("startedAt", r.getStartedAt());
-            sm.put("endedAt", r.getEndedAt());
-            sm.put("ok", r.getOk());
-            sm.put("llmCalls", r.getLlmCalls());
-            sm.put("cacheHits", r.getCacheHits());
-            return sm;
-        }).toList();
 
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("paperId", paper.getId());
@@ -164,9 +161,18 @@ public class PaperController {
         res.put("status", paper.getStatus().name());
         res.put("failedStage", paper.getFailedStage());
         res.put("error", paper.getError());
-        res.put("stages", stages);
-        res.put("stats", computePaperStats(id));
+        res.put("createdAt", paper.getCreatedAt());
+        res.put("stages", metricsService.stageRuns(id, paper.getStatus()));
+        res.put("stats", metricsService.stats(id));
         return res;
+    }
+
+    /** Latest run of each stage (PARSE, EXTRACT, VERIFY, WRITE, RENDER), in pipeline order. */
+    @GetMapping("/papers/{id}/runs")
+    public List<Map<String, Object>> getRuns(@PathVariable("id") String id) {
+        PaperEntity paper = paperRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Paper not found: " + id));
+        return metricsService.stageRuns(id, paper.getStatus());
     }
 
     @PostMapping("/papers/{id}/retry")
@@ -315,65 +321,5 @@ public class PaperController {
         Number secondsNum = (Number) body.getOrDefault("seconds", 0);
         humanEventRepository.save(new HumanEventEntity(id, actor, kind, secondsNum.intValue()));
         return ResponseEntity.ok().build();
-    }
-
-    private Map<String, Object> computePaperStats(String paperId) {
-        List<ClaimEntity> claims = claimRepository.findByPaperIdOrderByIdAsc(paperId);
-        int total = claims.size();
-        int approved = 0;
-        int edited = 0;
-        int rejected = 0;
-        int flagged = 0;
-        int reviewSecs = 0;
-
-        for (ClaimEntity c : claims) {
-            if (c.getDoctorStatus() == DoctorStatus.APPROVED) approved++;
-            else if (c.getDoctorStatus() == DoctorStatus.EDITED) edited++;
-            else if (c.getDoctorStatus() == DoctorStatus.REJECTED) rejected++;
-
-            // claimsAutoFlagged = claims with risk AMBER/RED or status NEEDS_EVIDENCE as set by the pipeline
-            if (c.getRisk() == Risk.AMBER || c.getRisk() == Risk.RED || c.getDoctorStatus() == DoctorStatus.NEEDS_EVIDENCE) {
-                flagged++;
-            }
-
-            if (c.getReviewSeconds() != null) reviewSecs += c.getReviewSeconds();
-        }
-
-        List<HumanEventEntity> events = humanEventRepository.findByPaperIdOrderByAtAsc(paperId);
-        int humanSeconds = 0;
-        for (HumanEventEntity ev : events) {
-            if (ev.getSeconds() != null) humanSeconds += ev.getSeconds();
-        }
-        if (humanSeconds == 0) humanSeconds = reviewSecs;
-
-        // pipelineSeconds = latest successful run only (PARSE start -> VERIFY end)
-        List<PipelineRunEntity> runs = pipelineRunRepository.findByPaperIdOrderByStartedAtAsc(paperId);
-        Instant latestParseStart = null;
-        Instant latestVerifyEnd = null;
-        for (PipelineRunEntity r : runs) {
-            if (Boolean.TRUE.equals(r.getOk())) {
-                if ("PARSE".equalsIgnoreCase(r.getStage()) && r.getStartedAt() != null) {
-                    latestParseStart = r.getStartedAt();
-                } else if ("VERIFY".equalsIgnoreCase(r.getStage()) && r.getEndedAt() != null) {
-                    latestVerifyEnd = r.getEndedAt();
-                }
-            }
-        }
-
-        long pipelineSeconds = 0;
-        if (latestParseStart != null && latestVerifyEnd != null && latestVerifyEnd.isAfter(latestParseStart)) {
-            pipelineSeconds = Duration.between(latestParseStart, latestVerifyEnd).toSeconds();
-        }
-
-        Map<String, Object> stats = new LinkedHashMap<>();
-        stats.put("claimsTotal", total);
-        stats.put("claimsApproved", approved);
-        stats.put("claimsEdited", edited);
-        stats.put("claimsRejected", rejected);
-        stats.put("claimsAutoFlagged", flagged);
-        stats.put("doctorReviewSeconds", reviewSecs);
-        stats.put("humanSecondsTotal", humanSeconds);
-        stats.put("pipelineSeconds", pipelineSeconds);
-        return stats;
     }
 }

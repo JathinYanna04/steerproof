@@ -69,7 +69,8 @@ def parse_endpoint(req: ParseRequest):
 
         passages = parse_pdf(pdf_full_path, req.paperId, settings.storage_dir)
         page_images = render_page_images(pdf_full_path, req.paperId, settings.storage_dir)
-        meta = extract_meta(passages, llm_client)
+        meta = extract_meta(passages, llm_client, pdf_path=pdf_full_path,
+                            cache_dir=settings.storage_dir / "cache" / "meta")
 
         page_count = len(page_images)
         return ParseResponse(

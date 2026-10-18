@@ -33,6 +33,8 @@ public class PipelineRunEntity {
 
     private String error;
 
+    private String model;
+
     public PipelineRunEntity() {}
 
     public PipelineRunEntity(String paperId, String stage, Instant startedAt) {
@@ -58,4 +60,6 @@ public class PipelineRunEntity {
     public void setCacheHits(Integer cacheHits) { this.cacheHits = cacheHits; }
     public String getError() { return error; }
     public void setError(String error) { this.error = error; }
+    public String getModel() { return model; }
+    public void setModel(String model) { this.model = model; }
 }

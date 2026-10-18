@@ -279,7 +279,7 @@ public class ReviewServiceTest {
         assertEquals(3, stats.get("claimsAutoFlagged"));
 
         // latest successful run only: PARSE start to VERIFY end (120 - 30 = 90 seconds)
-        assertEquals(90L, stats.get("pipelineSeconds"));
+        assertEquals(90.0, stats.get("pipelineSeconds"));
     }
 
     @Test
