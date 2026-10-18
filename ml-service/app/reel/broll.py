@@ -3,6 +3,7 @@ import re
 import json
 import time
 import hashlib
+import shutil
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Set, Tuple
@@ -332,6 +333,13 @@ def _pick_hit(
     return min(candidates, key=lambda c: c["rank"]), ""
 
 
+def _http_download(url: str, dest: Path) -> None:
+    # The Pixabay CDN returns 403 for urllib's default User-Agent.
+    req = urllib.request.Request(url, headers={"User-Agent": "SteerProof/1.0"})
+    with urllib.request.urlopen(req, timeout=60) as resp, open(dest, "wb") as out:
+        shutil.copyfileobj(resp, out)
+
+
 def _download_clip(hit_id: str, url: str, broll_dir: Path) -> Path:
     """Permanent mp4 cache by Pixabay id: storage/broll/pixabay-{id}.mp4."""
     broll_dir.mkdir(parents=True, exist_ok=True)
@@ -339,7 +347,7 @@ def _download_clip(hit_id: str, url: str, broll_dir: Path) -> Path:
     if not dest.exists() or dest.stat().st_size == 0:
         logger.info(f"Downloading Pixabay clip {hit_id} to {dest}")
         tmp = dest.with_suffix(".part")
-        urllib.request.urlretrieve(url, str(tmp))
+        _http_download(url, tmp)
         tmp.replace(dest)
     return dest
 

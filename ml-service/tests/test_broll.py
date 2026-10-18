@@ -159,7 +159,7 @@ def test_pixabay_search_size_choice_and_credits(tmp_path):
         _hit(103, sizes=("small",)),                # small fallback
     ]}})
     with patch("urllib.request.urlopen", side_effect=api), \
-         patch("urllib.request.urlretrieve", side_effect=_fake_download) as dl:
+         patch("app.reel.broll._http_download", side_effect=_fake_download) as dl:
         res, reason = _fetch_pixabay_video("steaming morning tea cup", 5, "test-key-123", tmp_path)
     assert reason is None
     assert res["hitId"] == "103" and res["sizeUsed"] == "small"
@@ -176,7 +176,7 @@ def test_pixabay_search_size_choice_and_credits(tmp_path):
 def test_pixabay_prefers_medium_over_small(tmp_path):
     api = _Api({"tea": {"totalHits": 1, "hits": [_hit(7)]}})
     with patch("urllib.request.urlopen", side_effect=api), \
-         patch("urllib.request.urlretrieve", side_effect=_fake_download):
+         patch("app.reel.broll._http_download", side_effect=_fake_download):
         res, _ = _fetch_pixabay_video("tea", 4, "test-key-123", tmp_path)
     assert res["sizeUsed"] == "medium"
 
@@ -184,7 +184,7 @@ def test_pixabay_prefers_medium_over_small(tmp_path):
 def test_pixabay_search_cache_24h(tmp_path):
     api = _Api({"tea": {"totalHits": 1, "hits": [_hit(7)]}})
     with patch("urllib.request.urlopen", side_effect=api), \
-         patch("urllib.request.urlretrieve", side_effect=_fake_download) as dl:
+         patch("app.reel.broll._http_download", side_effect=_fake_download) as dl:
         _fetch_pixabay_video("tea", 4, "test-key-123", tmp_path)
         _fetch_pixabay_video("tea", 4, "test-key-123", tmp_path)
         assert len(api.urls) == 1          # second search served from cache
@@ -204,7 +204,7 @@ def test_pixabay_429_waits_reset_and_retries_once(tmp_path):
         return urllib.error.HTTPError("u", 429, "Too Many", {"X-RateLimit-Reset": "3"}, None)
     ok = _json_resp({"totalHits": 1, "hits": [_hit(9)]})
     with patch("urllib.request.urlopen", side_effect=[err429(), ok]), \
-         patch("urllib.request.urlretrieve", side_effect=_fake_download), \
+         patch("app.reel.broll._http_download", side_effect=_fake_download), \
          patch("app.reel.broll.time.sleep") as sleep:
         res, reason = _fetch_pixabay_video("tea", 4, "test-key-123", tmp_path)
     sleep.assert_called_once_with(3.0)
@@ -228,7 +228,7 @@ def test_no_id_reused_within_one_reel(tmp_path):
     scenes = [{"n": i + 1, "brollQuery": q, "minSeconds": 4}
               for i, q in enumerate(["chai cup", "kitchen counter", "wall clock"])]
     with patch("urllib.request.urlopen", side_effect=api), \
-         patch("urllib.request.urlretrieve", side_effect=_fake_download):
+         patch("app.reel.broll._http_download", side_effect=_fake_download):
         results = process_reel_broll(scenes, storage_dir=tmp_path, api_key="test-key-123", used_ids=[])
     assert [r["hitId"] for r in results[:2]] == ["1", "2"]
     assert results[2]["videoPath"] is None
@@ -238,7 +238,7 @@ def test_no_id_reused_within_one_reel(tmp_path):
 def test_simplified_query_retry(tmp_path):
     api = _Api({"cup": {"totalHits": 1, "hits": [_hit(5)]}})
     with patch("urllib.request.urlopen", side_effect=api), \
-         patch("urllib.request.urlretrieve", side_effect=_fake_download):
+         patch("app.reel.broll._http_download", side_effect=_fake_download):
         results = process_reel_broll([{"n": 1, "brollQuery": "steaming cup on desk"}],
                                      storage_dir=tmp_path, api_key="test-key-123")
     assert results[0]["hitId"] == "5"
@@ -263,7 +263,7 @@ def test_null_reasons(tmp_path):
         {"n": 4, "brollQuery": ""},
     ]
     with patch("urllib.request.urlopen", side_effect=api), \
-         patch("urllib.request.urlretrieve", side_effect=_fake_download):
+         patch("app.reel.broll._http_download", side_effect=_fake_download):
         r = process_reel_broll(scenes, storage_dir=tmp_path, api_key="test-key-123")
     assert [x["reason"] for x in r] == ["NO_HITS", "ALL_DENYLISTED", "DENYLIST:gym", "EMPTY_QUERY"]
     assert all(x["videoPath"] is None and x["creditLine"] is None for x in r)
