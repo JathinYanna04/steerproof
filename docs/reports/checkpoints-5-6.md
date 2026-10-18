@@ -58,3 +58,119 @@ lint:colors passed! No hex literals found outside brand.ts.
 ```
 Result: 0 hex literals found outside `brand.ts`.
 
+---
+
+## PART 2: CAROUSEL + STATIC TEMPLATES
+
+### 1. Rendered Asset Paths
+- Carousel 1080×1350 PNGs:
+  - `storage/renders/P-0001/carousel/1.png` (Hook)
+  - `storage/renders/P-0001/carousel/2.png` (Point - 100 kcal stat)
+  - `storage/renders/P-0001/carousel/3.png` (Illustration - softPaper card)
+  - `storage/renders/P-0001/carousel/4.png` (Point - 29 studies stat)
+  - `storage/renders/P-0001/carousel/5.png` (Point - Support)
+  - `storage/renders/P-0001/carousel/6.png` (Source - Literature citation)
+  - `storage/renders/P-0001/carousel/7.png` (Closing - Maroon `#661414` full-bleed)
+- Static PNGs:
+  - `storage/renders/P-0001/static.png` (Default portrait 1080×1350)
+  - `storage/renders/P-0001/static-1080x1080.png` (Bonus square 1080×1080)
+  - `storage/renders/P-0001/static-1080x1920.png` (Bonus story 1080×1920)
+- Contact sheet:
+  - `storage/debug/P-0001-contact-sheet.png` (2160×1350 8-tile contact sheet generated via ffmpeg)
+
+### 2. Slide 1 and Slide 3 Blocks JSON
+
+#### Slide 1 Blocks:
+```json
+[
+  {
+    "image": "carousel/1.png",
+    "blockId": "slide1.label",
+    "x": 96,
+    "y": 120,
+    "w": 888,
+    "h": 29,
+    "slide": 1
+  },
+  {
+    "image": "carousel/1.png",
+    "blockId": "slide1.headline",
+    "x": 96,
+    "y": 513,
+    "w": 888,
+    "h": 202,
+    "slide": 1
+  },
+  {
+    "image": "carousel/1.png",
+    "blockId": "slide1.footer",
+    "x": 96,
+    "y": 1170,
+    "w": 888,
+    "h": 40,
+    "slide": 1
+  }
+]
+```
+
+#### Slide 3 Blocks (Illustration):
+```json
+[
+  {
+    "image": "carousel/3.png",
+    "blockId": "slide3.label",
+    "x": 96,
+    "y": 120,
+    "w": 888,
+    "h": 29,
+    "slide": 3
+  },
+  {
+    "image": "carousel/3.png",
+    "blockId": "slide3.headline",
+    "x": 153,
+    "y": 544,
+    "w": 774,
+    "h": 88,
+    "slide": 3
+  },
+  {
+    "image": "carousel/3.png",
+    "blockId": "slide3.body",
+    "x": 153,
+    "y": 661,
+    "w": 774,
+    "h": 151,
+    "slide": 3
+  },
+  {
+    "image": "carousel/3.png",
+    "blockId": "slide3.footer",
+    "x": 96,
+    "y": 1170,
+    "w": 888,
+    "h": 40,
+    "slide": 3
+  }
+]
+```
+
+### 3. Font Verification
+In `shoot.ts`, Playwright verifies `document.fonts.check('96px "Instrument Serif"') === true` after `document.fonts.ready`. Inlined base64 fonts ensure 100% offline availability without network calls.
+
+### 4. Forced Overflow Test (`TEXT_OVERFLOW`)
+Ran forced overflow curl test with a 300-character body paragraph:
+```
+POST /carousel
+Body: { "paperId": "P-0001-overflow-test", "slides": [{ "n": 1, "body": "...300 chars..." }] }
+
+HTTP/1.1 422 Unprocessable Entity
+{
+  "error": "TEXT_OVERFLOW",
+  "blockId": "slide1.body",
+  "message": "TEXT_OVERFLOW on slide1.body"
+}
+```
+Result: Successfully triggered text overflow step-down loop, hit the 30px body floor, and returned `422 Unprocessable Entity` with `TEXT_OVERFLOW`.
+
+

@@ -2,6 +2,7 @@ package com.steerclub.steerproof.pipeline;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.steerclub.steerproof.audit.AuditService;
 import com.steerclub.steerproof.claim.ClaimEntity;
 import com.steerclub.steerproof.claim.ClaimRepository;
@@ -453,10 +454,37 @@ public class PipelineService {
                     if (slidesNode != null && slidesNode.isArray()) {
                         List<Map<String, Object>> slidesList = objectMapper.convertValue(slidesNode, new TypeReference<List<Map<String, Object>>>() {});
                         boolean isDraft = carAsset.getStatus() != AssetStatus.APPROVED;
-                        RenderServiceClient.RenderResult res = renderServiceClient.renderCarousel(paperId, slidesList, citation, isDraft);
-                        carAsset.setRenderPaths(objectMapper.writeValueAsString(res.paths()));
-                        if (carAsset.getStatus() == AssetStatus.DRAFT) {
-                            carAsset.setStatus(AssetStatus.RENDERED);
+                        try {
+                            RenderServiceClient.RenderResult res = renderServiceClient.renderCarousel(paperId, slidesList, citation, isDraft);
+                            carAsset.setRenderPaths(objectMapper.writeValueAsString(res.paths()));
+
+                            Map<String, Object> blockMap = new HashMap<>();
+                            for (Map<String, Object> s : slidesList) {
+                                int n = s.containsKey("n") ? ((Number) s.get("n")).intValue() : 1;
+                                String kind = (String) s.getOrDefault("kind", "brand");
+                                Object claimIds = s.getOrDefault("claimIds", List.of());
+                                Map<String, Object> meta = Map.of("kind", kind, "claimIds", claimIds);
+                                blockMap.put("slide" + n + ".headline", meta);
+                                blockMap.put("slide" + n + ".body", meta);
+                                blockMap.put("slide" + n + ".stat", meta);
+                            }
+
+                            if (carContent.isObject()) {
+                                ((ObjectNode) carContent).set("blocks", objectMapper.valueToTree(res.blocks()));
+                                ((ObjectNode) carContent).set("blockMap", objectMapper.valueToTree(blockMap));
+                                carAsset.setContent(objectMapper.writeValueAsString(carContent));
+                            }
+
+                            if (carAsset.getStatus() != AssetStatus.BLOCKED && carAsset.getStatus() != AssetStatus.APPROVED) {
+                                carAsset.setStatus(AssetStatus.RENDERED);
+                            }
+                        } catch (Exception ex) {
+                            if (ex.getMessage() != null && ex.getMessage().contains("TEXT_OVERFLOW")) {
+                                log.error("Carousel render overflow for {}: {}", paperId, ex.getMessage());
+                                carAsset.setStatus(AssetStatus.BLOCKED);
+                            } else {
+                                throw ex;
+                            }
                         }
                         assetRepository.save(carAsset);
                     }
@@ -467,12 +495,38 @@ public class PipelineService {
                 Optional<AssetEntity> staOpt = assetRepository.findById(staId);
                 if (staOpt.isPresent()) {
                     AssetEntity staAsset = staOpt.get();
-                    Map<String, Object> staContent = objectMapper.readValue(staAsset.getContent(), new TypeReference<Map<String, Object>>() {});
+                    JsonNode staContent = objectMapper.readTree(staAsset.getContent());
+                    Map<String, Object> staContentMap = objectMapper.convertValue(staContent, new TypeReference<Map<String, Object>>() {});
                     boolean isDraft = staAsset.getStatus() != AssetStatus.APPROVED;
-                    RenderServiceClient.RenderResult res = renderServiceClient.renderStatic(paperId, staContent, citation, isDraft);
-                    staAsset.setRenderPaths(objectMapper.writeValueAsString(res.paths()));
-                    if (staAsset.getStatus() == AssetStatus.DRAFT) {
-                        staAsset.setStatus(AssetStatus.RENDERED);
+                    try {
+                        RenderServiceClient.RenderResult res = renderServiceClient.renderStatic(paperId, staContentMap, citation, isDraft);
+                        staAsset.setRenderPaths(objectMapper.writeValueAsString(res.paths()));
+
+                        String kind = (String) staContentMap.getOrDefault("kind", "claim");
+                        Object claimIds = staContentMap.getOrDefault("claimIds", List.of());
+                        Map<String, Object> meta = Map.of("kind", kind, "claimIds", claimIds);
+                        Map<String, Object> blockMap = Map.of(
+                                "static.headline", meta,
+                                "static.support", meta,
+                                "static.footnote", meta
+                        );
+
+                        if (staContent.isObject()) {
+                            ((ObjectNode) staContent).set("blocks", objectMapper.valueToTree(res.blocks()));
+                            ((ObjectNode) staContent).set("blockMap", objectMapper.valueToTree(blockMap));
+                            staAsset.setContent(objectMapper.writeValueAsString(staContent));
+                        }
+
+                        if (staAsset.getStatus() != AssetStatus.BLOCKED && staAsset.getStatus() != AssetStatus.APPROVED) {
+                            staAsset.setStatus(AssetStatus.RENDERED);
+                        }
+                    } catch (Exception ex) {
+                        if (ex.getMessage() != null && ex.getMessage().contains("TEXT_OVERFLOW")) {
+                            log.error("Static render overflow for {}: {}", paperId, ex.getMessage());
+                            staAsset.setStatus(AssetStatus.BLOCKED);
+                        } else {
+                            throw ex;
+                        }
                     }
                     assetRepository.save(staAsset);
                 }
