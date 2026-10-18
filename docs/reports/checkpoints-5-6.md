@@ -305,3 +305,116 @@ Sampled 3 words across distinct scenes and checked the Edge TTS JSON word timest
 | **Scene 3** | *"exploratory"* | 574 ms | 18,240.7 ms | Frame 548 | 18,266.7 ms | **+26 ms** | **PASS** (<= ±150ms) |
 
 All 3 sampled words aligned within 24–29 ms (< 1 video frame at 30 fps), demonstrating near-perfect sync between Azure neural audio synthesis and Remotion subtitles.
+
+---
+
+## PART 5: RUN EVERYTHING ON ALL PAPERS
+
+### 1. Papers in `demo/papers/`
+The demo folder contains two clinical papers:
+1. `demo/papers/hall-kahan-2018.pdf` -> **Paper ID**: `P-0001`
+2. `demo/papers/wilding-2022.pdf` -> **Paper ID**: `P-0002`
+
+### 2. Summary of All Papers
+
+| Paper ID | Title | Claims Reviewed (Appr / Rej) | Carousel Slides | Reel Duration | Static Formats Rendered |
+|:---|:---|:---|:---|:---|:---|
+| **P-0001** | Maintenance of lost weight and long-term management of obesity | 5 Approved / 1 Rejected (10 total claims) | 7 PNGs (1080×1350) | 45.68s (1080×1920, 30fps) | 1080×1350, 1080×1080, 1080×1920 |
+| **P-0002** | Weight regain and cardiometabolic effects after withdrawal of semaglutide | 9 Approved / 1 Rejected (10 total claims) | 7 PNGs (1080×1350) | 48.68s (1080×1920, 30fps) | 1080×1350, 1080×1080, 1080×1920 |
+
+### 3. Pipeline Timings Table
+
+| Paper ID | Pipeline Stage | Duration | Status | LLM Calls / Cache Hits |
+|:---|:---|:---|:---|:---|
+| **P-0001** | PARSE | 42.1s | `OK` | 0 calls / 0 hits |
+| **P-0001** | EXTRACT | 44.4s | `OK` | 1 call / 0 hits |
+| **P-0001** | VERIFY | 163.1s | `OK` | 2 calls / 0 hits |
+| **P-0001** | WRITE | 0.5s | `OK` | 0 calls / 1 hit (Prompt cache) |
+| **P-0001** | RENDER (Carousel + Static) | 13.0s | `OK` | 0 calls / 0 hits |
+| **P-0001** | RENDER (Reel Video) | 45.7s | `OK` | 0 calls / 0 hits |
+| **P-0002** | PARSE | 56.2s | `OK` | 0 calls / 0 hits |
+| **P-0002** | EXTRACT | 163.3s | `OK` | 1 call / 0 hits |
+| **P-0002** | VERIFY | 340.8s | `OK` | 2 calls / 0 hits |
+| **P-0002** | WRITE | 34.7s | `OK` | 1 call / 0 hits |
+| **P-0002** | RENDER (Carousel + Static) | 5.5s | `OK` | 0 calls / 0 hits |
+| **P-0002** | RENDER (Reel Video) | 48.7s | `OK` | 0 calls / 0 hits |
+
+### 4. Visual Inspection of Contact Sheets
+- **`storage/debug/P-0001-contact-sheet.png` & `storage/debug/P-0002-contact-sheet.png`**:
+  - **Hook Slide (1)**: 88px Instrument Serif headlines wrap cleanly within the 888px content width. Generous 96px margins preserve airy editorial feel.
+  - **Stat Slides (2, 4)**: 220px rust counter numerals (`100`, `29`) render with balanced line height (1.0) and do not overlap with the 56px Inter label beneath.
+  - **Illustration Slides (3, 5)**: Card container (`#F8F2EB` with `#E6CBBD` border) cleanly encapsulates the body narrative. The handwritten Caveat tag (*"an everyday example"*) adds distinct warm character without clashing with the serif headline.
+  - **Closing Slide (7)**: Full-bleed maroon `#661414` background contrasts sharply with the warm cream `#F5EBDF` text and blush subtext. Steer wordmark renders with zero distortion.
+  - **Static Assets**: Automatically evaluated against multi-aspect containers (1080×1350, 1080×1080 square, 1080×1920 story) with zero text clippings or overflows.
+- **`storage/debug/P-0001-reel-frames.png` & `storage/debug/P-0002-reel-frames.png`**:
+  - Subtitle pill is anchored at `bottom: 300px`, completely avoiding modern mobile UI overlays (TikTok / IG Reels engagement buttons).
+  - High-contrast Rust (`#C04E2A`) on cream and Blush (`#E6CBBD`) on maroon provides effortless readability during fast speech.
+  - Procedural drifting blush circles provide subtle, warm motion dynamics without any visual noise.
+
+---
+
+## PART 6: FALLBACK EVALUATION
+- **Status**: **NOT NEEDED**.
+- Remotion `4.0.536` with `@remotion/bundler` and `@remotion/renderer` successfully initialized Chrome Headless Shell, rendered all scene sequences, synchronized audio with Web Audio API, and encoded H.264 / AAC MP4 files without errors.
+- Fallback shell script (`scripts/render-reel-ffmpeg.sh`) was preserved for emergency local CLI workflows but was not required by the pipeline.
+
+---
+
+## FINAL REPORT: CHECKPOINTS 5 & 6 SUMMARY
+
+### 1. Task Completion Status
+
+| Part | Component | Status | Notes |
+|:---|:---|:---|:---|
+| **Part 0** | Prechecks & Assets | **DONE** | Fonts base64-inlined; ambient music downloaded; versions verified |
+| **Part 1** | Render-service Skeleton | **DONE** | Zero hex literals verified via `npm run lint:colors`; Playwright runner ready |
+| **Part 2** | Carousel & Static Templates | **DONE** | 7-slide carousels, 3-format statics, block coordinates exported, overflow tested |
+| **Part 3** | Reel Audio & B-Roll Inputs | **DONE** | Edge TTS word timestamps, mutagen audio analysis, Pexels denylist verified |
+| **Part 4** | Reel Remotion Composition | **DONE** | 1080×1920 30fps vertical video, karaoke subtitles synced within 24–29 ms |
+| **Part 5** | Batch Run on All Papers | **DONE** | P-0001 and P-0002 fully rendered, contact sheets generated, timings logged |
+| **Part 6** | Fallback to FFmpeg | **NOT NEEDED** | Remotion rendered both reels cleanly on first attempt |
+
+### 2. Output Paths & File Inventory
+
+| Path | Dimensions / Duration | File Size | Description |
+|:---|:---|:---|:---|
+| `storage/renders/P-0001/carousel/1..7.png` | 1080 × 1350 each | 700 KB (total) | 7-slide carousel PNGs for Hall & Kahan (2018) |
+| `storage/renders/P-0001/static.png` | 1080 × 1350 | 104 KB | Portrait static card |
+| `storage/renders/P-0001/static-1080x1080.png` | 1080 × 1080 | 93 KB | Square static card |
+| `storage/renders/P-0001/static-1080x1920.png` | 1080 × 1920 | 107 KB | Story static card |
+| `storage/renders/P-0001/reel.mp4` | 1080 × 1920 (45.68s) | 3.5 MB | Full vertical Reel MP4 (H.264 / AAC) |
+| `storage/renders/P-0002/carousel/1..7.png` | 1080 × 1350 each | 732 KB (total) | 7-slide carousel PNGs for Wilding et al. (2022) |
+| `storage/renders/P-0002/static.png` | 1080 × 1350 | 113 KB | Portrait static card |
+| `storage/renders/P-0002/static-1080x1080.png` | 1080 × 1080 | 101 KB | Square static card |
+| `storage/renders/P-0002/static-1080x1920.png` | 1080 × 1920 | 119 KB | Story static card |
+| `storage/renders/P-0002/reel.mp4` | 1080 × 1920 (48.68s) | 3.7 MB | Full vertical Reel MP4 (H.264 / AAC) |
+| `storage/debug/P-0001-contact-sheet.png` | 2160 × 1350 | 426 KB | 8-tile contact sheet (7 carousel slides + static) |
+| `storage/debug/P-0002-contact-sheet.png` | 2160 × 1350 | 467 KB | 8-tile contact sheet (7 carousel slides + static) |
+| `storage/debug/P-0001-reel-frames.png` | 5400 × 1920 | 1.1 MB | 5 frame grabs (10%, 30%, 50%, 70%, 90%) |
+| `storage/debug/P-0002-reel-frames.png` | 5400 × 1920 | 265 KB | 5 frame grabs (10%, 30%, 50%, 70%, 90%) |
+| `storage/debug/bbox-check.png` | 1200 × 1600 | 321 KB | Multi-passage bounding box visual alignment |
+
+### 3. Known Visual & Layout Issues
+- **Text Collision / Overflow**: **None**. All headlines and body paragraphs fit within prescribed bounds; automated font step-down (down to 30px floor) ensured zero clipping.
+- **Policy Flag**: `A-0002-CAR` has 1 non-visual policy violation (`NUMBER_MISMATCH` on slide 6 for "2018" because the year from the cited reference was matched against the clinical claim numbers). This is correctly caught and blocked by Gate 2 policy check until resolved or approved.
+
+### 4. Test Suite Verification
+- **Backend Test Suite (`./mvnw test`)**:
+  ```
+  Tests run: 32, Failures: 0, Errors: 0, Skipped: 0
+  BUILD SUCCESS (Total time: 47.3s)
+  ```
+- **ML-Service Test Suite (`pytest`)**:
+  ```
+  tests/test_cache.py .                                    [  4%]
+  tests/test_extractor_postprocess.py .                    [  8%]
+  tests/test_number_check.py .........                     [ 47%]
+  tests/test_quote_check.py ....                           [ 65%]
+  tests/test_risk_floor.py ....                            [ 82%]
+  tests/test_writer_validation.py ....                     [100%]
+  ======================== 23 passed in 1.50s ========================
+  ```
+- **Color Token Compliance (`npm run lint:colors`)**:
+  ```
+  lint:colors passed! No hex literals found outside brand.ts.
+  ```
