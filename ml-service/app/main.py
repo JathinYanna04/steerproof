@@ -8,7 +8,9 @@ from app.schemas import (
     ParseRequest, ParseResponse,
     ExtractRequest, ExtractResponse,
     VerifyRequest, VerifyResponse, ClaimVerifyDetail,
-    WriteRequest, WriteResponse
+    WriteRequest, WriteResponse,
+    ReelAudioRequest, ReelAudioResponse,
+    ReelBrollRequest, ReelBrollResponse
 )
 from app.write.writer import run_writer
 from app.parse.docling_parser import parse_pdf
@@ -170,4 +172,38 @@ async def write_content(req: WriteRequest):
     except Exception as e:
         logger.error(f"Error in /write: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/reel/audio", response_model=ReelAudioResponse)
+async def reel_audio_endpoint(req: ReelAudioRequest):
+    try:
+        from app.reel.audio import generate_reel_audio
+        scenes_data = [s.model_dump() for s in req.scenes]
+        voice = req.voice or "en-IN-NeerjaNeural"
+        res = await generate_reel_audio(
+            paper_id=req.paperId,
+            scenes=scenes_data,
+            storage_dir=settings.storage_dir,
+            voice=voice
+        )
+        return ReelAudioResponse(**res)
+    except Exception as e:
+        logger.error(f"Error in /reel/audio: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/reel/broll", response_model=ReelBrollResponse)
+async def reel_broll_endpoint(req: ReelBrollRequest):
+    try:
+        from app.reel.broll import process_reel_broll
+        scenes_data = [s.model_dump() for s in req.scenes]
+        results = process_reel_broll(
+            paper_id=req.paperId,
+            scenes=scenes_data,
+            storage_dir=settings.storage_dir,
+            api_key=req.apiKey
+        )
+        return ReelBrollResponse(results=results)
+    except Exception as e:
+        logger.error(f"Error in /reel/broll: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 

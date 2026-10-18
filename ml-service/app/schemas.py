@@ -182,3 +182,57 @@ class WriteResponse(BaseModel):
     caption: dict
     llmCalls: int
     cacheHits: int
+
+class ReelAudioSceneInput(BaseModel):
+    n: int
+    voiceover: str
+    onScreen: Optional[str] = ""
+    motion: Optional[str] = "title"
+    kind: Optional[str] = "brand"
+    claimIds: list[str] = []
+    brollQuery: Optional[str] = ""
+
+class ReelAudioRequest(BaseModel):
+    paperId: str
+    scenes: list[ReelAudioSceneInput]
+    voice: Optional[str] = "en-IN-NeerjaNeural"
+
+class ReelAudioSceneResult(BaseModel):
+    n: int
+    audioPath: str
+    durationMs: int
+    words: list[dict]
+    onScreen: str = ""
+    motion: str = "title"
+    kind: str = "brand"
+    claimIds: list[str] = []
+    brollQuery: str = ""
+
+class ReelAudioResponse(BaseModel):
+    audioPath: str
+    totalDurationMs: int
+    words: list[dict]
+    scenes: list[ReelAudioSceneResult]
+
+class ReelBrollSceneInput(BaseModel):
+    n: int
+    brollQuery: str
+    durationMs: Optional[int] = 4000
+
+class ReelBrollRequest(BaseModel):
+    paperId: str
+    scenes: list[ReelBrollSceneInput]
+    apiKey: Optional[str] = None
+
+class ReelBrollResult(BaseModel):
+    n: int
+    query: str
+    allowed: bool
+    deniedReason: Optional[str] = None
+    videoPath: Optional[str] = None
+    photographer: Optional[str] = None
+    url: Optional[str] = None
+
+class ReelBrollResponse(BaseModel):
+    results: list[ReelBrollResult]
+
