@@ -18,25 +18,25 @@ Work top to bottom. Each item is small enough for one agent task. Tick it off wh
 - [x] CORS for localhost:3000
 
 ## ml-service foundation
-- [ ] FastAPI app, config, schemas, `/health`
-- [ ] LLM client with disk cache, token bucket, retries, 429 backoff, optional Groq fallback
-- [ ] `/fetch-url` (direct PDF + PMC page → PDF link)
-- [ ] `/parse` with Docling + PyMuPDF fallback + page PNGs + parsed cache
-- [ ] Meta extraction (heuristics + LLM fallback)
+- [x] FastAPI app, config, schemas, `/health`
+- [x] LLM client with disk cache, token bucket, retries, 429 backoff, optional Groq fallback
+- [x] `/fetch-url` (direct PDF + PMC page → PDF link)
+- [x] `/parse` with Docling + PyMuPDF fallback + page PNGs + parsed cache
+- [x] Meta extraction (heuristics + LLM fallback)
 
 ## Extraction and verification
-- [ ] Prompt files from docs/PROMPTS.md; loader with `{{var}}` replacement
-- [ ] `/extract` + post-processing (drop unknown passage IDs, dedupe, chunking for long papers)
-- [ ] `quote_check.py` + neighbour re-link
-- [ ] `number_check.py`
-- [ ] `/verify` (code checks + batched Gemini verifier + rubric + population profile)
-- [ ] Python unit tests from docs/TESTING.md
+- [x] Prompt files from docs/PROMPTS.md; loader with `{{var}}` replacement
+- [x] `/extract` + post-processing (drop unknown passage IDs, dedupe, chunking for long papers)
+- [x] `quote_check.py` + neighbour re-link
+- [x] `number_check.py`
+- [x] `/verify` (code checks + batched Gemini verifier + rubric + population profile)
+- [x] Python unit tests from docs/TESTING.md
 
 ## Pipeline orchestration (backend)
-- [ ] `PipelineService` with @Async stages: PARSE → EXTRACT → VERIFY, recording `pipeline_runs`
-- [ ] Paper status transitions + FAILED with stage/error + `/retry`
-- [ ] `POST /api/papers` (file + url) and `GET` endpoints
-- [ ] Persist passages and claims; set NEEDS_EVIDENCE by quote score
+- [x] `PipelineService` with @Async stages: PARSE → EXTRACT → VERIFY, recording `pipeline_runs`
+- [x] Paper status transitions + FAILED with stage/error + `/retry`
+- [x] `POST /api/papers` (file + url) and `GET` endpoints
+- [x] Persist passages and claims; set NEEDS_EVIDENCE by quote score
 
 ## Gate 1
 - [ ] `PATCH /api/claims/{id}` with the action rules + re-verify on EDIT with a passageId

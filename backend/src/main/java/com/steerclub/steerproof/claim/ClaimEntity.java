@@ -30,6 +30,7 @@ public class ClaimEntity {
     @Column(name = "consumer_draft", columnDefinition = "text")
     private String consumerDraft;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private String numbers = "[]";
 
@@ -42,6 +43,7 @@ public class ClaimEntity {
     @Column(name = "finding_class", nullable = false)
     private FindingClass findingClass;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private String limitations = "[]";
 

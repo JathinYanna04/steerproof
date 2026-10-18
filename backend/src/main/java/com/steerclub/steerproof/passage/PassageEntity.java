@@ -20,6 +20,7 @@ public class PassageEntity {
     @Column(nullable = false)
     private Integer page;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String bbox; // {l,t,r,b}
 

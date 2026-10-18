@@ -1,0 +1,15 @@
+GREEN:
+  - Primary or secondary outcome of an RCT or large cohort, stated with its qualifiers
+  - Well-established mechanism described in a review (e.g. muscle helps glucose uptake)
+  - Simplification keeps population, direction and magnitude
+AMBER:
+  - Exploratory, post hoc, extension or subgroup finding
+  - Observational association that a reader may take as cause
+  - Population differs from target audience (non-Asian, single sex, specific disease)
+  - Involves medicines (even generic names): keep strictly educational
+  - Numbers are relative (%), and absolute values are not stated
+RED:
+  - Not supported by the quote, or stronger than it
+  - Could be read as advice to start/stop/change a medicine or dose
+  - Animal, in-vitro, or very small studies (n < 30) presented as applying to people
+  - Anything implying a weight-loss amount or timeline for the reader

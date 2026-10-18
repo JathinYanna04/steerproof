@@ -29,9 +29,11 @@ class AuditLogEntity {
     @Column(name = "entity_id", nullable = false)
     private String entityId;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "before", columnDefinition = "jsonb")
     private String before;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "after", columnDefinition = "jsonb")
     private String after;
 
