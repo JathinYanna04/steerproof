@@ -1,0 +1,29 @@
+[
+  {
+    "file": "chai-pour-01.mp4",
+    "tags": ["chai", "tea", "cup", "morning", "black", "steaming"],
+    "source": "fixture",
+    "url": "",
+    "creator": "TEST FIXTURE",
+    "seconds": 10.0,
+    "orientation": "portrait"
+  },
+  {
+    "file": "roti-plate-01.mp4",
+    "tags": ["roti", "plate", "food", "dinner", "fresh", "bread", "meal"],
+    "source": "fixture",
+    "url": "",
+    "creator": "TEST FIXTURE",
+    "seconds": 10.0,
+    "orientation": "portrait"
+  },
+  {
+    "file": "medical-desk-01.mp4",
+    "tags": ["medical", "journal", "desk", "stethoscope", "clinic", "notes", "paper"],
+    "source": "fixture",
+    "url": "",
+    "creator": "TEST FIXTURE",
+    "seconds": 10.0,
+    "orientation": "landscape"
+  }
+]

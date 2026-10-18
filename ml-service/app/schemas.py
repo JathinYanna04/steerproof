@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Any
+from typing import Literal, Optional, Any, Union
 from pydantic import BaseModel, Field
 
 class BBox(BaseModel):
@@ -242,6 +242,12 @@ class ReelBrollResult(BaseModel):
     source: Optional[str] = None
     url: Optional[str] = None
     creator: Optional[str] = None
+    userId: Optional[Union[str, int]] = None
+    creditLine: Optional[str] = None
+    tags: Optional[str] = None
+    sizeUsed: Optional[str] = None
+    duration: Optional[float] = None
+    hitId: Optional[str] = None
     pexelsId: Optional[str] = None
     pexelsUrl: Optional[str] = None
     photographer: Optional[str] = None

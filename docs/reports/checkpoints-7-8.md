@@ -241,3 +241,73 @@ All 5 full-page UI screenshots captured at 1440px viewport width:
 - `storage/debug/ui-assets.png` (1440 × 950, 137 KB)
 - `storage/debug/ui-export.png` (1440 × 1214, 159 KB)
 
+
+---
+
+## SECTION D: B-ROLL PIPELINE HARDENING & ATTRIBUTION SPEC COMPLIANCE
+
+### 1. Zero Fabricated Credits Enforcement
+- **Fixtures Relocation**:
+  - The 3 test MP4 clips were moved from `storage/broll-library/` to `ml-service/tests/fixtures/broll/` strictly for test suites.
+  - Manifest `ml-service/tests/fixtures/broll/library.json` defines them with `creator: "TEST FIXTURE"` and `url: ""`.
+- **Cleaned Storage Library**:
+  - `storage/broll-library/library.json` was emptied to `[]`.
+  - Removed all placeholder attributions (*"Pexels Creative"*, *"Pixabay Studio"*, *"Health Stock"*) from `demo/CREDITS.md`.
+  - Zero placeholder or fabricated credits exist anywhere in the active application storage, exports, or codebase.
+
+### 2. Pixabay Specification Implementation (`app/reel/broll.py`)
+- **Primary Source**: Pixabay API is now the primary b-roll source (local library is checked first only if it contains entries).
+- **Search Parameters**:
+  - `GET https://pixabay.com/api/videos/?key={key}&q={query}&video_type=film{cat}&safesearch=true&per_page=10`
+  - Optional category inference (`&category=food` or `&category=places`) with automatic fallback to unconstrained search if 0 hits returned.
+- **Tag Denylist Filtering**:
+  - Automatically skips hits whose `tags` contain any denylisted terms:
+    `{"people", "body", "fitness", "gym", "woman", "man", "girl", "boy", "model", "beach", "bikini", "scale", "diet", "pills", "injection", "hospital"}`.
+- **Resolution Constraint**:
+  - Selects `videos.medium` first; falls back to `videos.small`. **NEVER** `videos.large` (bandwidth & quota protection).
+- **Caching**:
+  - **24-hour Search Cache**: Query responses stored as JSON under `storage/cache/pixabay/search_{md5(query)}.json`.
+  - **Permanent MP4 Cache**: Videos downloaded and cached permanently under `storage/broll/pixabay-{id}.mp4`.
+- **Rate Limit Resilience**:
+  - On HTTP 429 Too Many Requests: inspects `X-RateLimit-Reset` / `Retry-After`, sleeps for specified duration, retries once, then gracefully falls back to null.
+- **Attribution Format**:
+  - Captures `user`, `user_id`, and `pageURL` directly from API payload.
+  - Credit line format: `"Video by {user} on Pixabay — {pageURL}"`.
+
+### 3. Per-Reel Export Credits & Dynamic `demo/CREDITS.md`
+- **`sources.md` in Release Package**:
+  - `ExportController.java` inspects the REEL asset's stored scene metadata (`creditLine`, `videoPath`, `creator`, `url`).
+  - Lists *only* the clips actually used in that paper's reel.
+  - If no external stock clips were used, reports: *"Motion video footage: Steer procedural motion background (cream #FBF8F3 / blush #E6CBBD / maroon #3D141A)."*
+- **Dynamic `demo/CREDITS.md`**:
+  - Automatically regenerated upon export from all clips used across all exported reels in the database.
+
+### 4. Reel Re-rendering & Frame Grabs
+Re-rendered both reels through Remotion (`render-service`) with procedural brand motion backgrounds:
+- `P-0001/reel.mp4`: 39.7s vertical 1080×1920 MP4 (H.264 / AAC)
+- `P-0002/reel.mp4`: 37.9s vertical 1080×1920 MP4 (H.264 / AAC)
+- **Contact Sheets Captured**:
+  - `storage/debug/P-0001-reel-frames.png`: 5400 × 1920 composite of 5 frames (10%, 30%, 50%, 70%, 90%)
+  - `storage/debug/P-0002-reel-frames.png`: 5400 × 1920 composite of 5 frames (10%, 30%, 50%, 70%, 90%)
+
+#### P-0001 Reel Scenes Detail:
+| Scene | Query | Hit ID | Size Used | Duration | Credit Line |
+| :---: | :--- | :---: | :---: | :---: | :--- |
+| **1** | `steaming black tea cup` | N/A | N/A | N/A | Procedural motion background |
+| **2** | `fresh roti on plate` | N/A | N/A | N/A | Procedural motion background |
+| **3** | `medical journal pages open` | N/A | N/A | N/A | Procedural motion background |
+| **4** | `stethoscope on wooden desk` | N/A | N/A | N/A | Procedural motion background |
+| **5** | `minimalist medical clinic desk` | N/A | N/A | N/A | Procedural motion background |
+
+#### P-0002 Reel Scenes Detail:
+| Scene | Query | Hit ID | Size Used | Duration | Credit Line |
+| :---: | :--- | :---: | :---: | :---: | :--- |
+| **1** | `steaming chai cup desk` | N/A | N/A | N/A | Procedural motion background |
+| **2** | `stethoscope medical clipboard` | N/A | N/A | N/A | Procedural motion background |
+| **3** | `calendar turning pages` | N/A | N/A | N/A | Procedural motion background |
+| **4** | `fresh cooked rotis bowl` | N/A | N/A | N/A | Procedural motion background |
+| **5** | `bright clean clinic room` | N/A | N/A | N/A | Procedural motion background |
+
+### 5. Automated Verification Results
+- **Python ML-Service Pytest Suite**: 28 passed in 2.33s (including 5 unit tests for tag filtering, 24h search caching, 429 retry, and medium/small size selection).
+- **Java Backend Maven Test Suite**: 34 passed (including `Gate2AndExportIntegrationTest`, `PolicyCheckerTest`, and `ReviewServiceTest`).

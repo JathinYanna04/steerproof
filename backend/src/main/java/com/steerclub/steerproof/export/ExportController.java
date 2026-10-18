@@ -222,23 +222,40 @@ public class ExportController {
                 sourcesSb.append("- **Source**: [Pixabay Music](https://pixabay.com/music/ambient-calm-ambient-111899/)\n");
                 sourcesSb.append("- **License**: Pixabay Content License (Free for commercial and non-commercial use)\n\n");
                 sourcesSb.append("### Video Footage\n");
-                Path libraryJsonPath = storageService.getRootPath().resolve("broll-library").resolve("library.json");
-                if (Files.exists(libraryJsonPath)) {
+                Optional<AssetEntity> reelOpt = assets.stream().filter(a -> a.getType().name().equals("REEL")).findFirst();
+                Set<String> reelClipsUsed = new LinkedHashSet<>();
+                if (reelOpt.isPresent() && reelOpt.get().getContent() != null) {
                     try {
-                        JsonNode libNode = objectMapper.readTree(libraryJsonPath.toFile());
-                        if (libNode.isArray() && libNode.size() > 0) {
-                            for (JsonNode item : libNode) {
-                                String file = item.path("file").asText("");
-                                String creator = item.path("creator").asText("Creator");
-                                String source = item.path("source").asText("Stock");
-                                String url = item.path("url").asText("");
-                                sourcesSb.append("- **").append(file).append("**: ").append(creator)
-                                        .append(" (").append(source).append(!url.isBlank() ? " · " + url : "").append(")\n");
+                        JsonNode reelNode = objectMapper.readTree(reelOpt.get().getContent());
+                        JsonNode scenesNode = reelNode.has("scenes") ? reelNode.get("scenes") : null;
+                        if (scenesNode != null && scenesNode.isArray()) {
+                            for (JsonNode scene : scenesNode) {
+                                String creditLine = scene.path("creditLine").asText("");
+                                String videoPath = scene.path("videoPath").asText(scene.path("brollSrc").asText(""));
+                                String creator = scene.path("creator").asText(scene.path("photographer").asText(""));
+                                String url = scene.path("url").asText(scene.path("pexelsUrl").asText(""));
+                                String source = scene.path("source").asText("Pixabay");
+
+                                if (!creditLine.isBlank()) {
+                                    reelClipsUsed.add(creditLine);
+                                } else if (!creator.isBlank() && !creator.equalsIgnoreCase("null") && !creator.equalsIgnoreCase("TEST FIXTURE")) {
+                                    String line = "Video by " + creator + (source.isBlank() ? "" : " on " + source) + (url.isBlank() ? "" : " — " + url);
+                                    reelClipsUsed.add(line);
+                                } else if (!videoPath.isBlank() && !videoPath.equalsIgnoreCase("null") && !videoPath.contains("fixture")) {
+                                    reelClipsUsed.add("Video clip: " + videoPath);
+                                }
                             }
                         }
                     } catch (Exception ignored) {}
                 }
-                sourcesSb.append("- Motion video footage sourced from curated local library, Pixabay API (free license), or Steer procedural motion background.\n");
+
+                if (!reelClipsUsed.isEmpty()) {
+                    for (String clip : reelClipsUsed) {
+                        sourcesSb.append("- ").append(clip).append("\n");
+                    }
+                } else {
+                    sourcesSb.append("- Motion video footage: Steer procedural motion background (cream #FBF8F3 / blush #E6CBBD / maroon #3D141A).\n");
+                }
                 addStringToZip(zos, sourcesSb.toString(), "sources.md");
 
                 // 6. Review_report.json
@@ -301,6 +318,9 @@ public class ExportController {
         paper.setStatus(PaperStatus.EXPORTED);
         paperRepository.save(paper);
 
+        // Regenerate demo/CREDITS.md from clips used across all exported reels
+        regenerateDemoCredits();
+
         // Audit & HumanEvent
         auditService.log(reviewerName, "PAPER_EXPORTED", "paper", paperId, Map.of("prevStatus", prev != null ? prev.name() : "null"), Map.of("status", "EXPORTED", "zipUrl", "/files/exports/" + paperId + ".zip"));
         humanEventRepository.save(new HumanEventEntity(paperId, reviewerName, "EXPORT", 0));
@@ -322,6 +342,67 @@ public class ExportController {
                         "totalHumanSeconds", totalHumanSeconds
                 )
         ));
+    }
+
+    private void regenerateDemoCredits() {
+        try {
+            Path creditsPath = storageService.getRootPath().getParent().resolve("demo").resolve("CREDITS.md");
+            List<PaperEntity> exportedPapers = paperRepository.findAll().stream()
+                    .filter(p -> p.getStatus() == PaperStatus.EXPORTED)
+                    .toList();
+
+            Set<String> allClipsUsed = new LinkedHashSet<>();
+            for (PaperEntity p : exportedPapers) {
+                List<AssetEntity> pAssets = assetRepository.findByPaperIdOrderByIdAsc(p.getId());
+                for (AssetEntity a : pAssets) {
+                    if (a.getType().name().equals("REEL") && a.getContent() != null) {
+                        try {
+                            JsonNode rNode = objectMapper.readTree(a.getContent());
+                            JsonNode sNodes = rNode.has("scenes") ? rNode.get("scenes") : null;
+                            if (sNodes != null && sNodes.isArray()) {
+                                for (JsonNode scene : sNodes) {
+                                    String cl = scene.path("creditLine").asText("");
+                                    String creator = scene.path("creator").asText(scene.path("photographer").asText(""));
+                                    String url = scene.path("url").asText(scene.path("pexelsUrl").asText(""));
+                                    String source = scene.path("source").asText("Pixabay");
+                                    if (!cl.isBlank()) {
+                                        allClipsUsed.add(cl);
+                                    } else if (!creator.isBlank() && !creator.equalsIgnoreCase("null") && !creator.equalsIgnoreCase("TEST FIXTURE")) {
+                                        allClipsUsed.add("Video by " + creator + (source.isBlank() ? "" : " on " + source) + (url.isBlank() ? "" : " — " + url));
+                                    }
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("# Credits & Attributions\n\n");
+            sb.append("## Audio & Music\n");
+            sb.append("- **Track**: Calm Ambient (ID: 111899)\n");
+            sb.append("- **Artist**: Lesfm / Pixabay\n");
+            sb.append("- **Source**: [Pixabay Music](https://pixabay.com/music/ambient-calm-ambient-111899/)\n");
+            sb.append("- **File**: `render-service/assets/music/calm-1.mp3`\n");
+            sb.append("- **License**: Pixabay Content License (Free for commercial and non-commercial use, no attribution required)\n\n");
+            sb.append("## Typography (Google Fonts)\n");
+            sb.append("- **Instrument Serif** (Regular & Italic): Designed by Rodrigo Fuenzalida, Jordan Wilson (SIL Open Font License 1.1)\n");
+            sb.append("- **Inter** (400 Regular, 500 Medium, 600 SemiBold): Designed by Rasmus Andersson (SIL Open Font License 1.1)\n");
+            sb.append("- **Caveat** (500 Medium): Designed by Pablo Impallari (SIL Open Font License 1.1)\n\n");
+            sb.append("## B-roll Video Footage\n");
+            if (!allClipsUsed.isEmpty()) {
+                for (String clip : allClipsUsed) {
+                    sb.append("- ").append(clip).append("\n");
+                }
+            } else {
+                sb.append("- No external video clips currently in use across exported reels. SteerProof renders procedural motion backgrounds using Steer brand palettes (`#FBF8F3` cream, `#E6CBBD` blush, `#3D141A` maroon).\n");
+            }
+            sb.append("\n");
+
+            Files.writeString(creditsPath, sb.toString(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.error("Failed to regenerate demo/CREDITS.md: {}", e.getMessage());
+        }
     }
 
     private void addFileToZip(ZipOutputStream zos, Path file, String zipPath) throws IOException {
